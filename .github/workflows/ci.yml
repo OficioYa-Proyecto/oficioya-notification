@@ -46,6 +46,6 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'oficioya-notificationapi-apffc2eygzgcbghp'
+          app-name: 'oficioya-notification'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: '**/oficioya-notification-*.jar'
