@@ -3,6 +3,7 @@ package oficioya_notification.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -11,10 +12,12 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import oficioya_notification.dto.EmailRequest;
 import oficioya_notification.dto.NotificationRequest;
 import oficioya_notification.dto.NotificationResponse;
 import oficioya_notification.entity.Notification;
@@ -34,6 +37,9 @@ class NotificationServiceTest {
     @Mock
     private FcmService fcmService;
 
+    @Mock
+    private EmailNotificationService emailNotificationService;
+
     @InjectMocks
     private NotificationService notificationService;
 
@@ -51,6 +57,33 @@ class NotificationServiceTest {
 
         NotificationResponse result = notificationService.sendNotification(req);
         assertEquals(resp.id(), result.id());
+    }
+
+    @Test
+    void sendNotificationREQUEST_CREATEDEnviaCorreoAlContratante() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), null, null, "Tu solicitud fue creada y enviada a los trabajadores",
+                NotificationType.REQUEST_CREATED, requestId, null, null, "contratante@correo.com");
+        Notification entity = new Notification();
+        entity.setTitle("Tu solicitud fue creada y enviada a los trabajadores");
+        entity.setDescription("Tu solicitud fue creada y enviada a los trabajadores");
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.REQUEST_CREATED, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+
+        notificationService.sendNotification(req);
+
+        ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
+        verify(emailNotificationService).sendEmail(captor.capture());
+        EmailRequest email = captor.getValue();
+        assertEquals("contratante@correo.com", email.to());
+        assertEquals("Tu solicitud en OficioYa fue creada", email.subject());
+        assertTrue(email.body().contains("ID de solicitud: " + requestId));
+        assertEquals("REQUEST_CREATED", email.type());
     }
 
     @Test

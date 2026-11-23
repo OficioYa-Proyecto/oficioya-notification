@@ -6,10 +6,12 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import oficioya_notification.dto.EmailRequest;
 import oficioya_notification.dto.NotificationRequest;
 import oficioya_notification.dto.NotificationResponse;
 import oficioya_notification.entity.Notification;
 import oficioya_notification.mapper.ResponseMapper;
+import oficioya_notification.model.NotificationType;
 import oficioya_notification.repository.NotificationRepository;
 
 @Service
@@ -18,11 +20,14 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final ResponseMapper responseMapper;
     private final FcmService fcmService;
+    private final EmailNotificationService emailNotificationService;
 
-    public NotificationService(NotificationRepository notificationRepository, ResponseMapper responseMapper, FcmService fcmService) {
+    public NotificationService(NotificationRepository notificationRepository, ResponseMapper responseMapper,
+                               FcmService fcmService, EmailNotificationService emailNotificationService) {
         this.notificationRepository = notificationRepository;
         this.responseMapper = responseMapper;
         this.fcmService = fcmService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     public List<NotificationResponse> findAllForUser(UUID userId) {
@@ -54,7 +59,23 @@ public class NotificationService {
                 noti.getTitle(), noti.getDescription(),
                 java.util.Map.of("type", String.valueOf(request.type()), "requestId", String.valueOf(request.requestId())));
 
+        sendEmailIfRequested(request, noti);
+
         return response;
+    }
+
+    private void sendEmailIfRequested(NotificationRequest request, Notification noti) {
+        String email = request.receiverEmail();
+        if (email == null || email.isBlank()) {
+            return;
+        }
+        String subject = request.type() == NotificationType.REQUEST_CREATED
+                ? "Tu solicitud en OficioYa fue creada"
+                : (noti.getTitle() != null ? noti.getTitle() : "Notificación OficioYa");
+        String body = (noti.getDescription() != null ? noti.getDescription() : "")
+                + "\n\nID de solicitud: " + noti.getRequestId()
+                + "\n\nOficioYa";
+        emailNotificationService.sendEmail(new EmailRequest(email, subject, body, String.valueOf(request.type())));
     }
 
     public boolean deleteNotification(UUID requestId) {
