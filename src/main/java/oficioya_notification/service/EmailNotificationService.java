@@ -3,6 +3,7 @@ package oficioya_notification.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,9 @@ public class EmailNotificationService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
+    @Value("${notification.smtp.username:}")
+    private String smtpUsername;
+
     public String sendEmail(EmailRequest request) {
         if (request.to() == null || request.to().isBlank()) {
             log.warn("Destinatario (to) vacío; no se envía correo.");
@@ -29,6 +33,9 @@ public class EmailNotificationService {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(request.to());
+            if (smtpUsername != null && !smtpUsername.isBlank()) {
+                message.setFrom("OficioYa <" + smtpUsername + ">");
+            }
             message.setSubject(request.subject() != null ? request.subject() : "Notificación OficioYa");
             message.setText(request.body() != null ? request.body() : "");
             mailSender.send(message);

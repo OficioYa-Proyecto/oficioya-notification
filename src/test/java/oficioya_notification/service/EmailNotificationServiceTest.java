@@ -24,6 +24,12 @@ class EmailNotificationServiceTest {
         field.set(service, sender);
     }
 
+    private void setSmtpUsername(EmailNotificationService service, String username) throws Exception {
+        Field field = EmailNotificationService.class.getDeclaredField("smtpUsername");
+        field.setAccessible(true);
+        field.set(service, username);
+    }
+
     @Test
     void destinatarioVacioNoEnvia() {
         EmailNotificationService service = new EmailNotificationService();
@@ -65,6 +71,20 @@ class EmailNotificationServiceTest {
         verify(sender).send(captor.capture());
         assertEquals("Asunto", captor.getValue().getSubject());
         assertEquals("Cuerpo", captor.getValue().getText());
+    }
+
+    @Test
+    void enviaCorreoConRemitenteOficioYa() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = mock(JavaMailSender.class);
+        setMailSender(service, sender);
+        setSmtpUsername(service, "oficioya.notificaciones@gmail.com");
+
+        service.sendEmail(new EmailRequest("destino@example.com", "Asunto", "Cuerpo", "REQUEST_CREATED"));
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(sender).send(captor.capture());
+        assertEquals("OficioYa <oficioya.notificaciones@gmail.com>", captor.getValue().getFrom());
     }
 
     @Test
