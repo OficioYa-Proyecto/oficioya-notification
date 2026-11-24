@@ -42,6 +42,17 @@ jobs:
             printf 'firebase.credentials.path=classpath:firebase-service-account.json\n'
             printf 'firebase.project.id=%s\n' "$FIREBASE_PROJECT_ID"
           } >> src/main/resources/application-azure.properties
+          # Azure tiene SPRING_PROFILES_ACTIVE=prod en el App Service real, así que
+          # las claves propias también deben quedar en el archivo base.
+          {
+            printf '\nnotification.smtp.host=%s\n' "$MAIL_HOST"
+            printf 'notification.smtp.port=%s\n' "$MAIL_PORT"
+            printf 'notification.smtp.username=%s\n' "$MAIL_USERNAME"
+            printf 'notification.smtp.password=%s\n' "$MAIL_PASSWORD"
+            printf 'notification.admin.email=%s\n' "$NOTIFICATION_FALLBACK_EMAIL"
+            printf 'firebase.credentials.path=classpath:firebase-service-account.json\n'
+            printf 'firebase.project.id=%s\n' "$FIREBASE_PROJECT_ID"
+          } >> src/main/resources/application.properties
 
       - name: Build and test with Maven
         run: mvn -B clean verify -Dtest='!OficioyaNotificationApplicationTests' -DfailIfNoTests=false -Djacoco.skip=true
