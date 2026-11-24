@@ -14,18 +14,13 @@ jobs:
           profile = root.find(".//publishProfile")
           host = profile.get("publishUrl").split(":")[0]
           auth = base64.b64encode((profile.get("userName") + ":" + profile.get("userPWD")).encode()).decode()
-          base = "https://" + host + "/api/vfs/LogFiles/Application/"
           headers = {"Authorization": "Basic " + auth}
-          listing = urllib.request.urlopen(urllib.request.Request(base, headers=headers), timeout=30).read().decode("utf-8", "replace")
-          names = re.findall(r'"Name":"([^"]+)"', listing)
-          print("LOG_FILES", names[-10:])
-          for name in names[-3:]:
-              if not name.endswith(".log"):
-                  continue
-              url = base + name.replace(" ", "%20")
-              text = urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30).read().decode("utf-8", "replace")
-              print("=== " + name + " ===")
-              for line in text.splitlines()[-160:]:
-                  if any(k in line for k in ("ERROR", "Exception", "Caused by", "Failed", "APPLICATION FAILED")):
-                      print(line[:500])
+          for path in ["", "LogFiles", "LogFiles/Application", "home/LogFiles/Application", "home/site/wwwroot"]:
+              base = "https://" + host + "/api/vfs/" + path + ("/" if path else "")
+              try:
+                  listing = urllib.request.urlopen(urllib.request.Request(base, headers=headers), timeout=30).read().decode("utf-8", "replace")
+                  names = re.findall(r'"Name":"([^"]+)"', listing)
+                  print("LIST", path or "/", names[-20:])
+              except Exception as exc:
+                  print("LIST_ERROR", path, str(exc)[:200])
           PY
