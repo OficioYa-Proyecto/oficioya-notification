@@ -20,7 +20,9 @@ class NotificationEmailTemplateTest {
         NotificationRequest request = new NotificationRequest(
                 UUID.randomUUID(), "Solicitud entrante", "Fuga de agua", "msg",
                 NotificationType.INCOMING_REQUEST, UUID.randomUUID(), null, null, "trabajador@correo.com",
-                LocalDateTime.of(2026, 3, 2, 10, 30), "Laureles", "Cra. 74 # 39-25", null);
+                LocalDateTime.of(2026, 3, 2, 10, 30), "Laureles", "Cra. 74 # 39-25", null,
+                "https://service.test/api/v1/requests/email/accept?requestId=1&token=abc",
+                "https://service.test/api/v1/requests/email/reject?requestId=1&token=def");
         Notification notification = new Notification();
         notification.setDescription("Fuga de agua");
         notification.setRequestId(request.requestId());
@@ -37,7 +39,10 @@ class NotificationEmailTemplateTest {
         assertTrue(html.contains("cid:oficioya-logo"));
         assertTrue(html.contains("Laureles"));
         assertTrue(html.contains("a 1,2 km"));
-        assertTrue(html.contains("Ver solicitud"));
+        assertTrue(html.contains("Aceptar"));
+        assertTrue(html.contains("Rechazar"));
+        assertTrue(html.contains("https://service.test/api/v1/requests/email/accept?requestId=1&amp;token=abc"));
+        assertTrue(html.contains("https://service.test/api/v1/requests/email/reject?requestId=1&amp;token=def"));
         assertTrue(html.contains("notification-in"));
         assertTrue(html.contains("4.2s"));
     }
