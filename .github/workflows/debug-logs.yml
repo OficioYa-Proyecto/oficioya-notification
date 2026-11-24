@@ -9,18 +9,21 @@ jobs:
           AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         run: |
           python3 - <<'PY'
-          import base64, os, re, urllib.request, xml.etree.ElementTree as ET
+          import base64, json, os, urllib.request, xml.etree.ElementTree as ET
           root = ET.fromstring(os.environ["AZURE_WEBAPP_PUBLISH_PROFILE"])
           profile = root.find(".//publishProfile")
           host = profile.get("publishUrl").split(":")[0]
           auth = base64.b64encode((profile.get("userName") + ":" + profile.get("userPWD")).encode()).decode()
           headers = {"Authorization": "Basic " + auth}
-          for path in ["", "LogFiles", "LogFiles/Application", "home/LogFiles/Application", "home/site/wwwroot"]:
-              base = "https://" + host + "/api/vfs/" + path + ("/" if path else "")
-              try:
-                  listing = urllib.request.urlopen(urllib.request.Request(base, headers=headers), timeout=30).read().decode("utf-8", "replace")
-                  names = re.findall(r'"Name":"([^"]+)"', listing)
-                  print("LIST", path or "/", names[-20:], "RAW", listing[:600].replace("\n", " "))
-              except Exception as exc:
-                  print("LIST_ERROR", path, str(exc)[:200])
+          base = "https://" + host + "/api/vfs/LogFiles/Application/"
+          listing = json.loads(urllib.request.urlopen(urllib.request.Request(base, headers=headers), timeout=30).read().decode("utf-8", "replace"))
+          for item in listing:
+              name = item["name"]
+              if not name.endswith(".log"):
+                  continue
+              print("=== " + name + " ===")
+              text = urllib.request.urlopen(urllib.request.Request(base + name, headers=headers), timeout=30).read().decode("utf-8", "replace")
+              lines = text.splitlines()
+              for line in lines[-240:]:
+                  print(line[:500])
           PY
