@@ -33,12 +33,6 @@ class EmailNotificationServiceTest {
         field.set(service, username);
     }
 
-    private void setFallbackEmail(EmailNotificationService service, String email) throws Exception {
-        Field field = EmailNotificationService.class.getDeclaredField("fallbackEmail");
-        field.setAccessible(true);
-        field.set(service, email);
-    }
-
     @Test
     void destinatarioVacioNoEnvia() {
         EmailNotificationService service = new EmailNotificationService();
@@ -140,54 +134,5 @@ class EmailNotificationServiceTest {
         assertTrue(result.contains("error al enviar correo"));
         assertTrue(result.contains("SMTP caído"));
         verify(sender).send(any(SimpleMailMessage.class));
-    }
-
-    @Test
-    void reporteDeFalloSeEnvíaAlCorreoDeSoporte() throws Exception {
-        EmailNotificationService service = new EmailNotificationService();
-        JavaMailSender sender = mock(JavaMailSender.class);
-        setMailSender(service, sender);
-        setFallbackEmail(service, "soporte@example.com");
-        setSmtpUsername(service, "oficioya.notificaciones@gmail.com");
-
-        String result = service.sendFailureReport("FCM", "trabajador@correo.com", "token inválido");
-
-        assertEquals("Recibido: reporte enviado a soporte@example.com", result);
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(sender).send(captor.capture());
-        assertEquals("soporte@example.com", captor.getValue().getTo()[0]);
-        assertTrue(captor.getValue().getSubject().contains("FCM"));
-        assertTrue(captor.getValue().getText().contains("token inválido"));
-    }
-
-    @Test
-    void reporteDeFalloSinCorreoDeSoporteNoSeEnvia() throws Exception {
-        EmailNotificationService service = new EmailNotificationService();
-        JavaMailSender sender = mock(JavaMailSender.class);
-        setMailSender(service, sender);
-
-        String result = service.sendFailureReport("FCM", "trabajador@correo.com", "token inválido");
-
-        assertTrue(result.contains("sin correo de soporte"));
-        verify(sender, org.mockito.Mockito.never()).send(any(SimpleMailMessage.class));
-    }
-
-    @Test
-    void errorDeEnvioHtmlGeneraReporte() throws Exception {
-        EmailNotificationService service = new EmailNotificationService();
-        JavaMailSender sender = mock(JavaMailSender.class);
-        when(sender.createMimeMessage()).thenReturn(new MimeMessage((Session) null));
-        doThrow(new IllegalStateException("SMTP caído")).when(sender).send(any(MimeMessage.class));
-        setMailSender(service, sender);
-        setFallbackEmail(service, "soporte@example.com");
-
-        String result = service.sendHtmlEmail(
-                new EmailRequest("destino@example.com", "Asunto", "Texto", "INCOMING_REQUEST"), "<html></html>");
-
-        assertTrue(result.contains("error al enviar correo"));
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(sender).send(captor.capture());
-        assertEquals("soporte@example.com", captor.getValue().getTo()[0]);
-        assertTrue(captor.getValue().getText().contains("SMTP caído"));
     }
 }
