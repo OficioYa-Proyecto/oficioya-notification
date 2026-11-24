@@ -24,6 +24,8 @@ jobs:
               print("=== " + name + " ===")
               text = urllib.request.urlopen(urllib.request.Request(base + name, headers=headers), timeout=30).read().decode("utf-8", "replace")
               lines = text.splitlines()
-              for line in lines[-240:]:
-                  print(line[:500])
+              for line in lines[-500:]:
+                  low = line.lower()
+                  if any(k in low for k in ("error", "exception", "caused by", "notification/email", "/api/v1/notification", "mail", "smtp", "bean", "profile")):
+                      print(line[:500])
           PY
