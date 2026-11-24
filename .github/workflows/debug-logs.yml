@@ -20,7 +20,7 @@ jobs:
               try:
                   listing = urllib.request.urlopen(urllib.request.Request(base, headers=headers), timeout=30).read().decode("utf-8", "replace")
                   names = re.findall(r'"Name":"([^"]+)"', listing)
-                  print("LIST", path or "/", names[-20:])
+                  print("LIST", path or "/", names[-20:], "RAW", listing[:600].replace("\n", " "))
               except Exception as exc:
                   print("LIST_ERROR", path, str(exc)[:200])
           PY
