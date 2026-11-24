@@ -68,15 +68,10 @@ public class FcmService {
         return new java.io.FileInputStream(path);
     }
 
-    /**
-     * Envía el push por Firebase. Devuelve {@code null} cuando el envío se omitió
-     * o terminó bien, y un mensaje de error cuando FCM falló, para que el
-     * orquestador de notificaciones pueda reportarlo por correo.
-     */
-    public String sendPush(String deviceToken, String topic, String title, String body, Map<String, String> data) {
+    public void sendPush(String deviceToken, String topic, String title, String body, Map<String, String> data) {
         if (!initialized) {
             log.warn("FCM not initialized; skipping push notification.");
-            return "Firebase no inicializado; push no enviado";
+            return;
         }
         try {
             Message.Builder builder = Message.builder();
@@ -86,7 +81,7 @@ public class FcmService {
                 builder.setTopic(topic);
             } else {
                 log.warn("No FCM target (token/topic); skipping push.");
-                return null;
+                return;
             }
             builder.setNotification(Notification.builder().setTitle(title).setBody(body).build());
             if (data != null) {
@@ -94,10 +89,8 @@ public class FcmService {
             }
             String response = FirebaseMessaging.getInstance().send(builder.build());
             log.info("FCM message sent: {}", response);
-            return null;
         } catch (Exception e) {
             log.error("Failed to send FCM message: {}", e.getMessage());
-            return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
         }
     }
 }
