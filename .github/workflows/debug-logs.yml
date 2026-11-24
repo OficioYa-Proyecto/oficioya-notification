@@ -15,17 +15,17 @@ jobs:
           host = profile.get("publishUrl").split(":")[0]
           auth = base64.b64encode((profile.get("userName") + ":" + profile.get("userPWD")).encode()).decode()
           headers = {"Authorization": "Basic " + auth}
-          base = "https://" + host + "/api/vfs/LogFiles/Application/"
-          listing = json.loads(urllib.request.urlopen(urllib.request.Request(base, headers=headers), timeout=30).read().decode("utf-8", "replace"))
-          for item in listing:
-              name = item["name"]
-              if not name.endswith(".log"):
-                  continue
-              print("=== " + name + " ===")
-              text = urllib.request.urlopen(urllib.request.Request(base + name, headers=headers), timeout=30).read().decode("utf-8", "replace")
-              lines = text.splitlines()
-              for line in lines[-500:]:
-                  low = line.lower()
-                  if any(k in low for k in ("error", "exception", "caused by", "notification/email", "/api/v1/notification", "mail", "smtp", "bean", "profile")):
+          root_url = "https://" + host + "/api/vfs/"
+          for folder in ["LogFiles", "LogFiles/Application"]:
+              base = root_url + folder + "/"
+              listing = json.loads(urllib.request.urlopen(urllib.request.Request(base, headers=headers), timeout=30).read().decode("utf-8", "replace"))
+              print("FOLDER", folder, [(x["name"], x["size"], x["mtime"]) for x in listing])
+              for item in listing:
+                  name = item["name"]
+                  if not name.endswith(".log"):
+                      continue
+                  print("=== " + folder + "/" + name + " ===")
+                  text = urllib.request.urlopen(urllib.request.Request(base + name, headers=headers), timeout=30).read().decode("utf-8", "replace")
+                  for line in text.splitlines()[-120:]:
                       print(line[:500])
           PY
