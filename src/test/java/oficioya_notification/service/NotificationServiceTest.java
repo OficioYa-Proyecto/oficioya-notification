@@ -3,6 +3,7 @@ package oficioya_notification.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -145,6 +146,35 @@ class NotificationServiceTest {
                 detalle.capture());
         assertTrue(detalle.getValue().contains("FCM: token FCM inválido"));
         verify(emailNotificationService).sendHtmlEmail(any(EmailRequest.class), org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"));
+    }
+
+    @Test
+    void sendNotificationConFcmFallidoIgualEnviaCorreo() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), "Solicitud entrante", "Fuga en Laureles", "msg", NotificationType.INCOMING_REQUEST,
+                requestId, null, null, "trabajador@correo.com");
+        Notification entity = new Notification();
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.INCOMING_REQUEST, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.workerHtml(req, entity)).thenReturn("<html>Solicitud entrante</html>");
+        when(emailTemplate.plainText(req, entity)).thenReturn("Solicitud entrante");
+        doThrow(new IllegalStateException("Firebase caído")).when(fcmService)
+                .sendPush(any(), any(), any(), any(), any());
+
+        notificationService.sendNotification(req);
+
+        verify(emailNotificationService).sendHtmlEmail(any(EmailRequest.class), org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"));
+        ArgumentCaptor<String> detalle = ArgumentCaptor.forClass(String.class);
+        verify(emailNotificationService).sendFailureReport(
+                org.mockito.ArgumentMatchers.eq("INCOMING_REQUEST"),
+                org.mockito.ArgumentMatchers.eq("trabajador@correo.com"),
+                detalle.capture());
+        assertTrue(detalle.getValue().contains("Firebase caído"));
     }
 
     @Test

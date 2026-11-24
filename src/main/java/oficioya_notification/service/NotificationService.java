@@ -58,16 +58,23 @@ public class NotificationService {
         NotificationResponse response = responseMapper.toResponse(notificationRepository.save(noti));
 
         List<String> deliveryErrors = new ArrayList<>();
-        String deviceToken = request.deviceToken();
-        String topic = (deviceToken == null || deviceToken.isBlank()) ? "user_" + request.receiverId() : null;
-        String pushError = fcmService.sendPush(deviceToken, topic,
-                noti.getTitle(), noti.getDescription(),
-                java.util.Map.of("type", String.valueOf(request.type()), "requestId", String.valueOf(request.requestId())));
-        if (pushError != null && !pushError.isBlank()) {
-            deliveryErrors.add("FCM: " + pushError);
+
+        // SMTP va primero: un problema con Firebase no debe impedir el correo.
+        deliveryErrors.addAll(sendEmailIfRequested(request, noti));
+
+        try {
+            String deviceToken = request.deviceToken();
+            String topic = (deviceToken == null || deviceToken.isBlank()) ? "user_" + request.receiverId() : null;
+            String pushError = fcmService.sendPush(deviceToken, topic,
+                    noti.getTitle(), noti.getDescription(),
+                    java.util.Map.of("type", String.valueOf(request.type()), "requestId", String.valueOf(request.requestId())));
+            if (pushError != null && !pushError.isBlank()) {
+                deliveryErrors.add("FCM: " + pushError);
+            }
+        } catch (RuntimeException e) {
+            deliveryErrors.add("FCM: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
         }
 
-        deliveryErrors.addAll(sendEmailIfRequested(request, noti));
         if (!deliveryErrors.isEmpty()) {
             emailNotificationService.sendFailureReport(
                     String.valueOf(request.type()),
