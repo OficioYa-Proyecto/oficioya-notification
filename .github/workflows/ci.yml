@@ -22,6 +22,38 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Inject mail and Firebase configuration for Azure
+        env:
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          NOTIFICATION_FALLBACK_EMAIL: ${{ secrets.NOTIFICATION_FALLBACK_EMAIL }}
+          FIREBASE_CREDENTIALS_JSON: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          printf '%s' "$FIREBASE_CREDENTIALS_JSON" > src/main/resources/firebase-service-account.json
+          {
+            printf '\nnotification.smtp.host=%s\n' "$MAIL_HOST"
+            printf 'notification.smtp.port=%s\n' "$MAIL_PORT"
+            printf 'notification.smtp.username=%s\n' "$MAIL_USERNAME"
+            printf 'notification.smtp.password=%s\n' "$MAIL_PASSWORD"
+            printf 'notification.admin.email=%s\n' "$NOTIFICATION_FALLBACK_EMAIL"
+            printf 'firebase.credentials.path=classpath:firebase-service-account.json\n'
+            printf 'firebase.project.id=%s\n' "$FIREBASE_PROJECT_ID"
+          } >> src/main/resources/application-azure.properties
+          # Azure tiene SPRING_PROFILES_ACTIVE=prod en el App Service real, así que
+          # las claves propias también deben quedar en el archivo base.
+          {
+            printf '\nnotification.smtp.host=%s\n' "$MAIL_HOST"
+            printf 'notification.smtp.port=%s\n' "$MAIL_PORT"
+            printf 'notification.smtp.username=%s\n' "$MAIL_USERNAME"
+            printf 'notification.smtp.password=%s\n' "$MAIL_PASSWORD"
+            printf 'notification.admin.email=%s\n' "$NOTIFICATION_FALLBACK_EMAIL"
+            printf 'firebase.credentials.path=classpath:firebase-service-account.json\n'
+            printf 'firebase.project.id=%s\n' "$FIREBASE_PROJECT_ID"
+          } >> src/main/resources/application.properties
+
       - name: Build and test with Maven
         run: mvn -B clean verify -Dtest='!OficioyaNotificationApplicationTests' -DfailIfNoTests=false -Djacoco.skip=true
 
@@ -49,3 +81,4 @@ jobs:
           app-name: 'oficioya-notificationapi'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: '**/oficioya-notification-*.jar'
+          restart: 'true'
