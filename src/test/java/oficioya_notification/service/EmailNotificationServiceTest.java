@@ -6,9 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mail.SimpleMailMessage;
@@ -85,6 +88,38 @@ class EmailNotificationServiceTest {
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(sender).send(captor.capture());
         assertEquals("OficioYa <oficioya.notificaciones@gmail.com>", captor.getValue().getFrom());
+    }
+
+    @Test
+    void enviaCorreoHtmlConRemitenteOficioYa() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = mock(JavaMailSender.class);
+        setMailSender(service, sender);
+        setSmtpUsername(service, "oficioya.notificaciones@gmail.com");
+        when(sender.createMimeMessage()).thenReturn(new MimeMessage((Session) null));
+
+        String result = service.sendHtmlEmail(
+                new EmailRequest("destino@example.com", "Asunto", "Texto plano", "INCOMING_REQUEST"),
+                "<html><body>Solicitud entrante</body></html>");
+
+        assertEquals("Recibido: correo enviado a destino@example.com", result);
+        verify(sender).createMimeMessage();
+        verify(sender).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void correoHtmlSinDestinatarioNoSeEnvia() {
+        EmailNotificationService service = new EmailNotificationService();
+        assertEquals("Recibido: destinatario vacío", service.sendHtmlEmail(
+                new EmailRequest(" ", "Asunto", "Texto", "REQUEST_CREATED"), "<html></html>"));
+    }
+
+    @Test
+    void correoHtmlSinMailSenderNoSeEnvia() {
+        EmailNotificationService service = new EmailNotificationService();
+        assertTrue(service.sendHtmlEmail(
+                new EmailRequest("destino@example.com", "Asunto", "Texto", "REQUEST_CREATED"), "<html></html>")
+                .contains("mail no configurado"));
     }
 
     @Test

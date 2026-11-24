@@ -21,13 +21,16 @@ public class NotificationService {
     private final ResponseMapper responseMapper;
     private final FcmService fcmService;
     private final EmailNotificationService emailNotificationService;
+    private final NotificationEmailTemplate emailTemplate;
 
     public NotificationService(NotificationRepository notificationRepository, ResponseMapper responseMapper,
-                               FcmService fcmService, EmailNotificationService emailNotificationService) {
+                               FcmService fcmService, EmailNotificationService emailNotificationService,
+                               NotificationEmailTemplate emailTemplate) {
         this.notificationRepository = notificationRepository;
         this.responseMapper = responseMapper;
         this.fcmService = fcmService;
         this.emailNotificationService = emailNotificationService;
+        this.emailTemplate = emailTemplate;
     }
 
     public List<NotificationResponse> findAllForUser(UUID userId) {
@@ -69,9 +72,23 @@ public class NotificationService {
         if (email == null || email.isBlank()) {
             return;
         }
-        String subject = request.type() == NotificationType.REQUEST_CREATED
-                ? "Tu solicitud en OficioYa fue creada"
-                : (noti.getTitle() != null ? noti.getTitle() : "Notificación OficioYa");
+        if (request.type() == NotificationType.REQUEST_CREATED) {
+            String subject = "Tu solicitud en OficioYa fue creada";
+            String plain = "Solicitud enviada\nLos trabajadores disponibles ya fueron notificados.\n\n"
+                    + "ID de solicitud: " + noti.getRequestId() + "\n\nOficioYa";
+            emailNotificationService.sendHtmlEmail(
+                    new EmailRequest(email, subject, plain, "REQUEST_CREATED"),
+                    emailTemplate.contractorHtml(request, noti));
+            return;
+        }
+        if (request.type() == NotificationType.INCOMING_REQUEST) {
+            String subject = "Solicitud entrante en OficioYa";
+            emailNotificationService.sendHtmlEmail(
+                    new EmailRequest(email, subject, emailTemplate.plainText(request, noti), "INCOMING_REQUEST"),
+                    emailTemplate.workerHtml(request, noti));
+            return;
+        }
+        String subject = noti.getTitle() != null ? noti.getTitle() : "Notificación OficioYa";
         String body = (noti.getDescription() != null ? noti.getDescription() : "")
                 + "\n\nID de solicitud: " + noti.getRequestId()
                 + "\n\nOficioYa";

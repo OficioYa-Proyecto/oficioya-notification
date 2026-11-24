@@ -40,6 +40,9 @@ class NotificationServiceTest {
     @Mock
     private EmailNotificationService emailNotificationService;
 
+    @Mock
+    private NotificationEmailTemplate emailTemplate;
+
     @InjectMocks
     private NotificationService notificationService;
 
@@ -74,16 +77,46 @@ class NotificationServiceTest {
         when(responseMapper.toNotification(req)).thenReturn(entity);
         when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
         when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.contractorHtml(req, entity)).thenReturn("<html>Solicitud enviada</html>");
 
         notificationService.sendNotification(req);
 
         ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
-        verify(emailNotificationService).sendEmail(captor.capture());
+        verify(emailNotificationService).sendHtmlEmail(captor.capture(), org.mockito.ArgumentMatchers.eq("<html>Solicitud enviada</html>"));
         EmailRequest email = captor.getValue();
         assertEquals("contratante@correo.com", email.to());
         assertEquals("Tu solicitud en OficioYa fue creada", email.subject());
         assertTrue(email.body().contains("ID de solicitud: " + requestId));
         assertEquals("REQUEST_CREATED", email.type());
+    }
+
+    @Test
+    void sendNotificationINCOMING_REQUESTEnviaCorreoAlTrabajador() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), "Solicitud entrante", "Fuga en Laureles", "msg",
+                NotificationType.INCOMING_REQUEST, requestId, null, null, "trabajador@correo.com",
+                java.time.LocalDateTime.of(2026, 3, 2, 10, 30), "Laureles", "Cra. 74 # 39-25", null);
+        Notification entity = new Notification();
+        entity.setTitle("Solicitud entrante");
+        entity.setDescription("Fuga en Laureles");
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.INCOMING_REQUEST, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.workerHtml(req, entity)).thenReturn("<html>Solicitud entrante</html>");
+        when(emailTemplate.plainText(req, entity)).thenReturn("Solicitud entrante");
+
+        notificationService.sendNotification(req);
+
+        ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
+        verify(emailNotificationService).sendHtmlEmail(captor.capture(), org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"));
+        EmailRequest email = captor.getValue();
+        assertEquals("trabajador@correo.com", email.to());
+        assertEquals("Solicitud entrante en OficioYa", email.subject());
+        assertEquals("INCOMING_REQUEST", email.type());
     }
 
     @Test
