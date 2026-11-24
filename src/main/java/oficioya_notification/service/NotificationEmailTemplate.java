@@ -62,7 +62,7 @@ public class NotificationEmailTemplate {
                 + "<img src=\"" + escape(image) + "\" alt=\"Fotografía de la avería\" width=\"100%\" height=\"94\" "
                 + "style=\"display:block;width:100%;height:94px;object-fit:cover;border-radius:14px;margin-top:12px;\">"
                 + detailGrid(dateValue, timeValue, neighborhood, address)
-                + actionRow()
+                + actionRow(request.acceptUrl(), request.rejectUrl())
                 + "<div style=\"height:3px;background:" + COLOR_PRIMARY_SOFT + ";border-radius:3px;margin-top:14px;overflow:hidden;\">"
                 + "<div style=\"height:3px;width:100%;background:" + COLOR_PRIMARY
                 + ";transform-origin:left;animation:presence 4.2s linear both;\"></div></div>"
@@ -113,7 +113,9 @@ public class NotificationEmailTemplate {
                 + "Fecha: " + dateValue + "\n"
                 + "Hora: " + timeValue + "\n"
                 + "Ubicación: " + neighborhood + " - " + address + "\n\n"
-                + "ID de solicitud: " + notification.getRequestId() + "\n";
+                + "ID de solicitud: " + notification.getRequestId() + "\n"
+                + "Aceptar: " + valueOr(request.acceptUrl(), "(no disponible)") + "\n"
+                + "Rechazar: " + valueOr(request.rejectUrl(), "(no disponible)") + "\n";
     }
 
     private String htmlShell(String content) {
@@ -182,16 +184,25 @@ public class NotificationEmailTemplate {
                 + "</table>";
     }
 
-    private String actionRow() {
+    private String actionRow(String acceptUrl, String rejectUrl) {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
                 + "style=\"margin-top:14px;border-top:1px solid " + COLOR_BORDER + ";table-layout:fixed;\">"
                 + "<tr>"
-                + "<td width=\"50%\" align=\"center\" style=\"padding:12px 4px;font-size:12px;color:"
-                + COLOR_MUTED + ";\">Ahora no</td>"
+                + actionCell(acceptUrl, "Aceptar", COLOR_PRIMARY, "#ffffff")
                 + "<td width=\"1\" style=\"background:" + COLOR_BORDER + ";\"></td>"
-                + "<td width=\"50%\" align=\"center\" style=\"padding:12px 4px;font-size:12px;font-weight:700;color:"
-                + COLOR_PRIMARY + ";\">Ver solicitud</td>"
+                + actionCell(rejectUrl, "Rechazar", COLOR_SURFACE, COLOR_ACCENT)
                 + "</tr></table>";
+    }
+
+    private String actionCell(String url, String label, String background, String color) {
+        if (url == null || url.isBlank()) {
+            return "<td width=\"50%\" align=\"center\" style=\"padding:12px 4px;font-size:12px;"
+                    + "font-weight:700;color:" + COLOR_MUTED + ";\">" + escape(label) + "</td>";
+        }
+        return "<td width=\"50%\" align=\"center\" style=\"padding:12px 4px;\">"
+                + "<a href=\"" + escape(url) + "\" style=\"display:inline-block;min-width:104px;"
+                + "padding:9px 14px;border-radius:10px;background:" + background + ";color:" + color
+                + ";font-size:12px;font-weight:700;text-decoration:none;\">" + escape(label) + "</a></td>";
     }
 
     private String formatDate(LocalDateTime value) {

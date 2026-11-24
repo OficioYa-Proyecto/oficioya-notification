@@ -52,7 +52,7 @@ public class NotificationController {
     
     @GetMapping("/{id}")
     @Operation(summary = "Get a notification by its id", description = "Gets the dto of the notification by the id given")
-    @PreAuthorize("hasAnyRole('CONTRATANTE', 'TRABAJADOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','SERVICE') or @notificationAccess.ownsNotification(#id, authentication)")
     public ResponseEntity<NotificationResponse> getById(@PathVariable UUID id){
         Optional<NotificationResponse> found = notificationService.findById(id);
         
@@ -65,7 +65,7 @@ public class NotificationController {
 
     @GetMapping("/user/{id}")
     @Operation(summary = "Get the notifications of a user", description = "Gets the notifications of a user by the id of the user")
-    @PreAuthorize("hasAnyRole('CONTRATANTE', 'TRABAJADOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','SERVICE') or @notificationAccess.isSelf(#id, authentication)")
     public ResponseEntity<List<NotificationResponse>> getAllUserNotifications(@PathVariable UUID id){
         /*
         Lógica de buscar id de usuario con servicio de usuarios
@@ -75,7 +75,7 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}/request/{requestId}")
     @Operation(summary="Get the notification of a request", description = "Gets the notifications of a user associated with a notification")
-    @PreAuthorize("hasAnyRole('CONTRATANTE', 'TRABAJADOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','SERVICE') or @notificationAccess.isSelf(#userId, authentication)")
     public ResponseEntity<List<NotificationResponse>> getAllUserNotificationsForARequest(@PathVariable UUID userId, @PathVariable UUID requestId){
         /*
         Lógica de buscar el id de usuario con servicio de usuarios
@@ -98,6 +98,7 @@ public class NotificationController {
 
     @PostMapping("/review-reported")
     @Operation(summary = "Notificar reseña reportada", description = "Recibe los datos de una reseña reportada y envía un correo al administrador. Responde confirmación de recepción.")
+    @PreAuthorize("hasAnyRole('ADMIN','SERVICE')")
     public ResponseEntity<String> notifyReviewReported(@Valid @RequestBody ReviewReportRequest request) {
         String result = reviewReportNotificationService.notifyReviewReported(request);
         return ResponseEntity.status(HttpStatus.OK).body(result);
@@ -105,6 +106,7 @@ public class NotificationController {
 
     @PostMapping("/email")
     @Operation(summary = "Enviar correo", description = "Envía un correo al destinatario indicado (OTP, cambio de contraseña, etc.). Responde confirmación de recepción.")
+    @PreAuthorize("hasAnyRole('ADMIN','SERVICE')")
     public ResponseEntity<String> sendEmail(@Valid @RequestBody EmailRequest request) {
         String result = emailNotificationService.sendEmail(request);
         return ResponseEntity.status(HttpStatus.OK).body(result);
