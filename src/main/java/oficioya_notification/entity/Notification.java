@@ -22,8 +22,8 @@ public class Notification {
     @Column(nullable = false)
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    private NotificationType type;
+    @Column(name = "type", nullable = false)
+    private String type;
 
     @Column(name = "request_id", nullable = false)
     private UUID requestId;
@@ -71,11 +71,11 @@ public class Notification {
     }
 
     public void setState(NotificationType newType){
-        this.type = newType;
+        this.type = newType == null ? null : newType.name();
     }
 
     public NotificationType getState(){
-        return this.type;
+        return this.type == null ? null : NotificationType.valueOf(this.type);
     }
 
     public void setRequestId(UUID newId){

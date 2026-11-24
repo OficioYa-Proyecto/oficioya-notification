@@ -37,11 +37,21 @@ public class NotificationSchemaMigration implements ApplicationRunner {
                 log.warn("No se encontró la columna NOTIFICATIONS.TYPE; se omite la migración.");
                 return;
             }
-            if ("CHARACTER VARYING".equalsIgnoreCase(sqlType) || "VARCHAR".equalsIgnoreCase(sqlType)) {
-                return;
+            if (!"CHARACTER VARYING".equalsIgnoreCase(sqlType) && !"VARCHAR".equalsIgnoreCase(sqlType)) {
+                jdbc.execute("ALTER TABLE notifications ALTER COLUMN type VARCHAR(255)");
+                log.info("Columna NOTIFICATIONS.TYPE convertida de {} a VARCHAR(255).", sqlType);
             }
-            jdbc.execute("ALTER TABLE notifications ALTER COLUMN type VARCHAR(255)");
-            log.info("Columna NOTIFICATIONS.TYPE convertida de {} a VARCHAR(255).", sqlType);
+            java.util.List<String> checks = jdbc.queryForList(
+                    "SELECT cc.CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc "
+                            + "JOIN INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc "
+                            + "ON cc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME "
+                            + "WHERE UPPER(tc.TABLE_NAME) = 'NOTIFICATIONS' "
+                            + "AND UPPER(cc.CHECK_CLAUSE) LIKE '%TYPE%'",
+                    String.class);
+            for (String constraint : checks) {
+                jdbc.execute("ALTER TABLE notifications DROP CONSTRAINT " + constraint);
+                log.info("Restricción CHECK {} eliminada de NOTIFICATIONS.TYPE.", constraint);
+            }
         } catch (Exception e) {
             log.warn("No se pudo migrar NOTIFICATIONS.TYPE: {}", e.getMessage());
         }
