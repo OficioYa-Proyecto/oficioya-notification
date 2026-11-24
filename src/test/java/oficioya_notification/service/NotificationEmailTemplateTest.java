@@ -27,11 +27,14 @@ class NotificationEmailTemplateTest {
 
         String html = template.workerHtml(request, notification);
 
-        assertTrue(html.contains("REQ-NOT-004"));
         assertTrue(html.contains("Alerta clara."));
         assertTrue(html.contains("Solicitud entrante"));
         assertTrue(html.contains("Nueva reparación cerca de ti"));
-        assertTrue(html.contains("OFICIO YA"));
+        assertTrue(html.contains("OficioYa"));
+        assertTrue(html.contains("#dc623f"));
+        assertTrue(html.contains("#fffcf7"));
+        assertTrue(html.contains("#e4ded4"));
+        assertTrue(html.contains("cid:oficioya-logo"));
         assertTrue(html.contains("Laureles"));
         assertTrue(html.contains("a 1,2 km"));
         assertTrue(html.contains("Ver solicitud"));
@@ -52,6 +55,9 @@ class NotificationEmailTemplateTest {
         assertTrue(html.contains("Solicitud enviada"));
         assertTrue(html.contains("Los trabajadores disponibles ya fueron notificados."));
         assertTrue(html.contains("Referencia " + request.requestId()));
+        assertTrue(html.contains("OficioYa"));
+        assertTrue(html.contains("#fff0e9"));
+        assertTrue(html.contains("cid:oficioya-logo"));
     }
 
     @Test
@@ -66,6 +72,7 @@ class NotificationEmailTemplateTest {
 
         String text = template.plainText(request, notification);
 
+        assertTrue(text.startsWith("OficioYa"));
         assertTrue(text.contains("Fecha: Lun, 2 de marzo"));
         assertTrue(text.contains("Laureles"));
     }

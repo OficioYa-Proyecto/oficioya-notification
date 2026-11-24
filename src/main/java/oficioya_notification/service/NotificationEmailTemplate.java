@@ -10,19 +10,29 @@ import oficioya_notification.dto.NotificationRequest;
 import oficioya_notification.entity.Notification;
 
 /**
- * Genera el HTML de los correos de solicitudes. El trabajador recibe la
- * notificación push enriquecida; el contratante recibe la confirmación visual
- * de que la solicitud ya fue enviada.
+ * Genera el HTML de los correos de solicitudes. La paleta y el logo se tomaron
+ * del front desplegado: fondo crema, naranja principal, texto verde oscuro y
+ * el archivo Logo.png incrustado como imagen CID.
  */
 @Component
 public class NotificationEmailTemplate {
 
+    private static final String LOGO_CID = "cid:oficioya-logo";
     private static final String DEFAULT_IMAGE =
             "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&w=800&q=80";
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("EEE, d 'de' MMMM", new Locale("es", "ES"));
     private static final DateTimeFormatter TIME_FORMAT =
             DateTimeFormatter.ofPattern("hh:mm a", new Locale("es", "ES"));
+
+    private static final String COLOR_BG = "#fffcf7";
+    private static final String COLOR_SURFACE = "#ffffff";
+    private static final String COLOR_BORDER = "#e4ded4";
+    private static final String COLOR_PRIMARY = "#dc623f";
+    private static final String COLOR_PRIMARY_SOFT = "#fff0e9";
+    private static final String COLOR_ACCENT = "#b7462b";
+    private static final String COLOR_TEXT = "#24312d";
+    private static final String COLOR_MUTED = "#68736f";
 
     public String workerHtml(NotificationRequest request, Notification notification) {
         String dateValue = formatDate(request.scheduledDateTime());
@@ -35,24 +45,27 @@ public class NotificationEmailTemplate {
 
         return htmlShell(
                 "<tr><td align=\"center\" style=\"padding:28px 16px 0;\">"
-                + "<div style=\"max-width:420px;margin:0 auto;background:rgba(255,255,255,.92);"
-                + "border:1px solid rgba(255,255,255,.55);border-radius:26px;padding:16px;"
-                + "box-shadow:0 18px 44px rgba(4,14,35,.35);backdrop-filter:blur(14px);"
+                + "<div style=\"max-width:420px;margin:0 auto;background:" + COLOR_SURFACE + ";"
+                + "border:1px solid " + COLOR_BORDER + ";border-radius:16px;padding:16px;"
+                + "box-shadow:0 8px 30px rgba(36,49,45,.08);"
                 + "animation:notification-in 900ms cubic-bezier(.22,1.28,.36,1) both;\">"
-                + appRow()
+                + brandRow("ahora")
                 + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:14px;\">"
-                + "<tr><td align=\"left\" style=\"font-size:19px;font-weight:750;color:#12213a;\">Solicitud entrante</td>"
-                + "<td align=\"right\" style=\"width:18px;\"><span style=\"display:inline-block;width:10px;height:10px;background:#1769e0;border-radius:50%;\"></span></td></tr>"
-                + "<tr><td colspan=\"2\" style=\"font-size:12px;color:#66748a;padding-top:3px;\">Nueva reparación cerca de ti</td></tr>"
+                + "<tr><td align=\"left\" style=\"font-size:19px;font-weight:750;color:" + COLOR_TEXT + ";\">Solicitud entrante</td>"
+                + "<td align=\"right\" style=\"width:18px;\"><span style=\"display:inline-block;width:10px;height:10px;background:"
+                + COLOR_PRIMARY + ";border-radius:50%;\"></span></td></tr>"
+                + "<tr><td colspan=\"2\" style=\"font-size:12px;color:" + COLOR_MUTED + ";padding-top:3px;\">"
+                + "Nueva reparación cerca de ti</td></tr>"
                 + "</table>"
-                + "<div style=\"margin-top:12px;font-size:12px;color:#52627a;line-height:18px;\">"
+                + "<div style=\"margin-top:12px;font-size:12px;color:" + COLOR_MUTED + ";line-height:18px;\">"
                 + escape(description) + "</div>"
                 + "<img src=\"" + escape(image) + "\" alt=\"Fotografía de la avería\" width=\"100%\" height=\"94\" "
                 + "style=\"display:block;width:100%;height:94px;object-fit:cover;border-radius:14px;margin-top:12px;\">"
                 + detailGrid(dateValue, timeValue, neighborhood, address)
                 + actionRow()
-                + "<div style=\"height:3px;background:#dce7f8;border-radius:3px;margin-top:14px;overflow:hidden;\">"
-                + "<div style=\"height:3px;width:100%;background:#1769e0;transform-origin:left;animation:presence 4.2s linear both;\"></div></div>"
+                + "<div style=\"height:3px;background:" + COLOR_PRIMARY_SOFT + ";border-radius:3px;margin-top:14px;overflow:hidden;\">"
+                + "<div style=\"height:3px;width:100%;background:" + COLOR_PRIMARY
+                + ";transform-origin:left;animation:presence 4.2s linear both;\"></div></div>"
                 + "</div>"
                 + "</td></tr>");
     }
@@ -63,19 +76,23 @@ public class NotificationEmailTemplate {
 
         return htmlShell(
                 "<tr><td align=\"center\" style=\"padding:26px 16px 34px;\">"
-                + "<div style=\"max-width:460px;margin:0 auto;background:rgba(255,255,255,.94);"
-                + "border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:16px 18px;"
-                + "box-shadow:0 18px 40px rgba(4,14,35,.24);backdrop-filter:blur(14px);"
+                + "<div style=\"max-width:460px;margin:0 auto;background:" + COLOR_SURFACE + ";"
+                + "border:1px solid " + COLOR_BORDER + ";border-radius:16px;padding:16px 18px;"
+                + "box-shadow:0 8px 30px rgba(36,49,45,.08);"
                 + "animation:notification-in 900ms cubic-bezier(.22,1.28,.36,1) both;\">"
-                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">"
-                + "<tr><td width=\"44\" valign=\"top\"><div style=\"width:38px;height:38px;border-radius:50%;"
-                + "background:#1769e0;color:#ffffff;font-size:20px;line-height:38px;text-align:center;"
-                + "font-weight:700;\">&#10003;</div></td>"
+                + brandRow("Confirmación")
+                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:14px;\">"
+                + "<tr><td width=\"52\" valign=\"top\">"
+                + "<div style=\"width:44px;height:44px;border-radius:50%;background:" + COLOR_PRIMARY_SOFT
+                + ";line-height:44px;text-align:center;\">"
+                + "<span style=\"display:inline-block;width:30px;height:30px;border-radius:50%;background:"
+                + COLOR_PRIMARY + ";color:#ffffff;font-size:16px;line-height:30px;text-align:center;font-weight:700;\">&#10003;</span>"
+                + "</div></td>"
                 + "<td align=\"left\" valign=\"top\" style=\"padding-left:12px;\">"
-                + "<div style=\"font-size:16px;font-weight:750;color:#12213a;\">Solicitud enviada</div>"
-                + "<div style=\"font-size:12px;color:#66748a;line-height:18px;margin-top:4px;\">"
+                + "<div style=\"font-size:16px;font-weight:750;color:" + COLOR_TEXT + ";\">Solicitud enviada</div>"
+                + "<div style=\"font-size:12px;color:" + COLOR_MUTED + ";line-height:18px;margin-top:4px;\">"
                 + "Los trabajadores disponibles ya fueron notificados.</div>"
-                + "<div style=\"font-size:10px;color:#8a97aa;margin-top:8px;\">Referencia "
+                + "<div style=\"font-size:10px;color:" + COLOR_ACCENT + ";margin-top:8px;\">Referencia "
                 + escape(requestId) + "</div>"
                 + "</td></tr></table>"
                 + "</div>"
@@ -90,7 +107,7 @@ public class NotificationEmailTemplate {
         String description = valueOr(notification.getDescription(),
                 valueOr(request.description(), "Nueva reparación cerca de ti"));
 
-        return "OFICIO YA\n"
+        return "OficioYa\n"
                 + "Solicitud entrante\n"
                 + description + "\n\n"
                 + "Fecha: " + dateValue + "\n"
@@ -107,58 +124,73 @@ public class NotificationEmailTemplate {
                 + "to{opacity:1;transform:translateY(0) scale(1);}}"
                 + "@keyframes presence{from{transform:scaleX(1);}to{transform:scaleX(0);}}"
                 + "</style></head>"
-                + "<body style=\"margin:0;padding:0;background:#eef3fb;font-family:Arial,Helvetica,sans-serif;\">"
-                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef3fb;\">"
+                + "<body style=\"margin:0;padding:0;background:" + COLOR_BG
+                + ";font-family:'DM Sans Variable',Arial,Helvetica,sans-serif;color:" + COLOR_TEXT + ";\">"
+                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:"
+                + COLOR_BG + ";\">"
                 + "<tr><td align=\"center\" style=\"padding:0 16px;\">"
                 + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;\">"
-                + "<tr><td style=\"background:#1769e0;border-radius:0 0 22px 22px;padding:22px;color:#ffffff;\">"
+                + "<tr><td style=\"background:" + COLOR_PRIMARY
+                + ";border-radius:0 0 20px 20px;padding:20px 22px;color:#ffffff;\">"
                 + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">"
-                + "<tr><td style=\"font-size:12px;letter-spacing:2px;font-weight:700;\">03</td>"
-                + "<td align=\"right\" style=\"font-size:12px;letter-spacing:1px;\">REQ-NOT-004</td></tr>"
+                + "<tr><td style=\"font-size:14px;font-weight:750;letter-spacing:-.2px;\">OficioYa</td>"
+                + "<td align=\"right\" style=\"font-size:11px;letter-spacing:1px;color:rgba(255,255,255,.85);\">SOLICITUDES</td></tr>"
                 + "</table>"
-                + "<div style=\"font-size:24px;font-weight:750;margin-top:14px;\">Alerta clara.</div>"
-                + "<div style=\"font-size:24px;font-weight:750;\">Respuesta inmediata.</div>"
-                + "<div style=\"font-size:13px;line-height:20px;opacity:.9;margin-top:10px;\">"
+                + "<div style=\"font-size:20px;font-weight:750;color:#ffffff;margin-top:16px;\">Alerta clara.</div>"
+                + "<div style=\"font-size:20px;font-weight:750;color:#ffffff;\">Respuesta inmediata.</div>"
+                + "<div style=\"font-size:13px;line-height:20px;color:rgba(255,255,255,.9);margin-top:8px;\">"
                 + "El trabajador recibe la información esencial en el momento justo.</div>"
                 + "</td></tr>"
                 + content
-                + "<tr><td align=\"center\" style=\"padding:20px 0 28px;font-size:11px;color:#8a97aa;\">OficioYa</td></tr>"
+                + "<tr><td align=\"center\" style=\"padding:18px 0 26px;font-size:11px;color:" + COLOR_MUTED
+                + ";\">OficioYa · Notificaciones</td></tr>"
                 + "</table></td></tr></table></body></html>";
     }
 
-    private String appRow() {
-        return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">"
-                + "<tr><td style=\"width:32px;\"><div style=\"width:28px;height:28px;border-radius:8px;background:#1769e0;"
-                + "color:#ffffff;font-size:11px;font-weight:800;line-height:28px;text-align:center;\">OY</div></td>"
-                + "<td style=\"font-size:11px;font-weight:700;letter-spacing:1px;color:#12213a;\">OFICIO YA</td>"
-                + "<td align=\"right\" style=\"font-size:11px;color:#8a97aa;\">ahora</td></tr>"
-                + "</table>";
+    private String brandRow(String rightLabel) {
+        return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" aria-label=\"OficioYa\">"
+                + "<tr>"
+                + "<td width=\"92\" valign=\"middle\"><img src=\"" + LOGO_CID
+                + "\" alt=\"OficioYa\" width=\"92\" height=\"32\" "
+                + "style=\"display:block;width:92px;height:32px;object-fit:contain;\"></td>"
+                + "<td align=\"right\" valign=\"middle\" style=\"font-size:11px;color:" + COLOR_MUTED + ";\">"
+                + escape(rightLabel) + "</td>"
+                + "</tr></table>";
     }
 
     private String detailGrid(String dateValue, String timeValue, String neighborhood, String address) {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:14px;\">"
                 + "<tr>"
-                + "<td width=\"50%\" style=\"padding:8px 6px;border:1px solid #e3eaf6;border-radius:12px;vertical-align:top;\">"
-                + "<div style=\"font-size:11px;color:#1769e0;\">" + icon("calendar") + " " + escape(dateValue) + "</div>"
-                + "<div style=\"font-size:10px;color:#8a97aa;margin-top:2px;\">Fecha</div></td>"
-                + "<td width=\"50%\" style=\"padding:8px 6px;border:1px solid #e3eaf6;border-radius:12px;vertical-align:top;\">"
-                + "<div style=\"font-size:11px;color:#1769e0;\">" + icon("clock") + " " + escape(timeValue) + "</div>"
-                + "<div style=\"font-size:10px;color:#8a97aa;margin-top:2px;\">Hora</div></td>"
+                + "<td width=\"50%\" style=\"padding:8px 6px;border:1px solid " + COLOR_BORDER
+                + ";border-radius:12px;vertical-align:top;\">"
+                + "<div style=\"font-size:11px;color:" + COLOR_PRIMARY + ";\">" + icon("calendar") + " "
+                + escape(dateValue) + "</div>"
+                + "<div style=\"font-size:10px;color:" + COLOR_MUTED + ";margin-top:2px;\">Fecha</div></td>"
+                + "<td width=\"50%\" style=\"padding:8px 6px;border:1px solid " + COLOR_BORDER
+                + ";border-radius:12px;vertical-align:top;\">"
+                + "<div style=\"font-size:11px;color:" + COLOR_PRIMARY + ";\">" + icon("clock") + " "
+                + escape(timeValue) + "</div>"
+                + "<div style=\"font-size:10px;color:" + COLOR_MUTED + ";margin-top:2px;\">Hora</div></td>"
                 + "</tr>"
-                + "<tr><td colspan=\"2\" style=\"padding:8px 6px;border:1px solid #e3eaf6;border-radius:12px;margin-top:8px;\">"
-                + "<div style=\"font-size:11px;color:#1769e0;\">" + icon("pin") + " " + escape(neighborhood) + "</div>"
-                + "<div style=\"font-size:10px;color:#8a97aa;margin-top:2px;\">" + escape(address) + " · a 1,2 km</div>"
+                + "<tr><td colspan=\"2\" style=\"padding:8px 6px;border:1px solid " + COLOR_BORDER
+                + ";border-radius:12px;margin-top:8px;\">"
+                + "<div style=\"font-size:11px;color:" + COLOR_PRIMARY + ";\">" + icon("pin") + " "
+                + escape(neighborhood) + "</div>"
+                + "<div style=\"font-size:10px;color:" + COLOR_MUTED + ";margin-top:2px;\">"
+                + escape(address) + " · a 1,2 km</div>"
                 + "</td></tr>"
                 + "</table>";
     }
 
     private String actionRow() {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
-                + "style=\"margin-top:14px;border-top:1px solid #e3eaf6;table-layout:fixed;\">"
+                + "style=\"margin-top:14px;border-top:1px solid " + COLOR_BORDER + ";table-layout:fixed;\">"
                 + "<tr>"
-                + "<td width=\"50%\" align=\"center\" style=\"padding:12px 4px;font-size:12px;color:#66748a;\">Ahora no</td>"
-                + "<td width=\"1\" style=\"background:#e3eaf6;\"></td>"
-                + "<td width=\"50%\" align=\"center\" style=\"padding:12px 4px;font-size:12px;font-weight:700;color:#1769e0;\">Ver solicitud</td>"
+                + "<td width=\"50%\" align=\"center\" style=\"padding:12px 4px;font-size:12px;color:"
+                + COLOR_MUTED + ";\">Ahora no</td>"
+                + "<td width=\"1\" style=\"background:" + COLOR_BORDER + ";\"></td>"
+                + "<td width=\"50%\" align=\"center\" style=\"padding:12px 4px;font-size:12px;font-weight:700;color:"
+                + COLOR_PRIMARY + ";\">Ver solicitud</td>"
                 + "</tr></table>";
     }
 

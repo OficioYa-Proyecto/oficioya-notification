@@ -3,6 +3,7 @@ package oficioya_notification.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -70,6 +71,7 @@ public class EmailNotificationService {
             }
             helper.setSubject(request.subject() != null ? request.subject() : "Notificación OficioYa");
             helper.setText(request.body() != null ? request.body() : "", html);
+            helper.addInline("oficioya-logo", new ClassPathResource("brand/logo.png"));
             mailSender.send(mimeMessage);
             log.info("Correo HTML enviado a {} (tipo: {})", request.to(), request.type());
             return "Recibido: correo enviado a " + request.to();
