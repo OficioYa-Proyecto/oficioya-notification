@@ -35,26 +35,25 @@ public class NotificationEmailTemplate {
 
         return htmlShell(
                 "<tr><td align=\"center\" style=\"padding:28px 16px 0;\">"
-                + phoneFrame(
-                        "<div style=\"max-width:420px;margin:0 auto;background:rgba(255,255,255,.92);"
-                        + "border:1px solid rgba(255,255,255,.55);border-radius:26px;padding:16px;"
-                        + "box-shadow:0 18px 44px rgba(4,14,35,.35);backdrop-filter:blur(14px);"
-                        + "animation:notification-in 900ms cubic-bezier(.22,1.28,.36,1) both;\">"
-                        + appRow()
-                        + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:14px;\">"
-                        + "<tr><td align=\"left\" style=\"font-size:19px;font-weight:750;color:#12213a;\">Solicitud entrante</td>"
-                        + "<td align=\"right\" style=\"width:18px;\"><span style=\"display:inline-block;width:10px;height:10px;background:#1769e0;border-radius:50%;\"></span></td></tr>"
-                        + "<tr><td colspan=\"2\" style=\"font-size:12px;color:#66748a;padding-top:3px;\">Nueva reparación cerca de ti</td></tr>"
-                        + "</table>"
-                        + "<div style=\"margin-top:12px;font-size:12px;color:#52627a;line-height:18px;\">"
-                        + escape(description) + "</div>"
-                        + "<img src=\"" + escape(image) + "\" alt=\"Fotografía de la avería\" width=\"100%\" height=\"94\" "
-                        + "style=\"display:block;width:100%;height:94px;object-fit:cover;border-radius:14px;margin-top:12px;\">"
-                        + detailGrid(dateValue, timeValue, neighborhood, address)
-                        + actionRow()
-                        + "<div style=\"height:3px;background:#dce7f8;border-radius:3px;margin-top:14px;overflow:hidden;\">"
-                        + "<div style=\"height:3px;width:100%;background:#1769e0;transform-origin:left;animation:presence 4.2s linear both;\"></div></div>"
-                        + "</div>")
+                + "<div style=\"max-width:420px;margin:0 auto;background:rgba(255,255,255,.92);"
+                + "border:1px solid rgba(255,255,255,.55);border-radius:26px;padding:16px;"
+                + "box-shadow:0 18px 44px rgba(4,14,35,.35);backdrop-filter:blur(14px);"
+                + "animation:notification-in 900ms cubic-bezier(.22,1.28,.36,1) both;\">"
+                + appRow()
+                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:14px;\">"
+                + "<tr><td align=\"left\" style=\"font-size:19px;font-weight:750;color:#12213a;\">Solicitud entrante</td>"
+                + "<td align=\"right\" style=\"width:18px;\"><span style=\"display:inline-block;width:10px;height:10px;background:#1769e0;border-radius:50%;\"></span></td></tr>"
+                + "<tr><td colspan=\"2\" style=\"font-size:12px;color:#66748a;padding-top:3px;\">Nueva reparación cerca de ti</td></tr>"
+                + "</table>"
+                + "<div style=\"margin-top:12px;font-size:12px;color:#52627a;line-height:18px;\">"
+                + escape(description) + "</div>"
+                + "<img src=\"" + escape(image) + "\" alt=\"Fotografía de la avería\" width=\"100%\" height=\"94\" "
+                + "style=\"display:block;width:100%;height:94px;object-fit:cover;border-radius:14px;margin-top:12px;\">"
+                + detailGrid(dateValue, timeValue, neighborhood, address)
+                + actionRow()
+                + "<div style=\"height:3px;background:#dce7f8;border-radius:3px;margin-top:14px;overflow:hidden;\">"
+                + "<div style=\"height:3px;width:100%;background:#1769e0;transform-origin:left;animation:presence 4.2s linear both;\"></div></div>"
+                + "</div>"
                 + "</td></tr>");
     }
 
@@ -127,27 +126,6 @@ public class NotificationEmailTemplate {
                 + "</table></td></tr></table></body></html>";
     }
 
-    private String phoneFrame(String card) {
-        return "<div style=\"max-width:380px;margin:0 auto;background:linear-gradient(160deg,#1d2a44 0%,#0b1324 100%);"
-                + "border-radius:42px;padding:18px 14px 22px;box-shadow:0 22px 50px rgba(4,14,35,.35);\">"
-                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"color:#ffffff;\">"
-                + "<tr><td style=\"font-size:12px;font-weight:700;width:58px;\">9:41</td>"
-                + "<td align=\"center\"><span style=\"display:inline-block;width:74px;height:20px;background:#05070c;border-radius:12px;\"></span></td>"
-                + "<td align=\"right\" style=\"width:58px;font-size:10px;\">&#9646;&#9646; &#9635; &#9647;</td></tr>"
-                + "</table>"
-                + "<div style=\"text-align:center;color:#d8e2f4;margin-top:22px;font-size:12px;\">Lunes, 2 de marzo</div>"
-                + "<div style=\"text-align:center;color:#ffffff;font-size:62px;font-weight:250;line-height:1.1;letter-spacing:-2px;\">9:41</div>"
-                + "<div style=\"margin-top:12px;\">" + card + "</div>"
-                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:20px;color:#d8e2f4;\">"
-                + "<tr><td align=\"center\"><div style=\"width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);"
-                + "font-size:13px;line-height:34px;text-align:center;\">" + icon("flashlight") + "</div><div style=\"font-size:9px;margin-top:4px;\">Linterna</div></td>"
-                + "<td align=\"center\"><div style=\"width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);"
-                + "font-size:13px;line-height:34px;text-align:center;\">" + icon("camera") + "</div><div style=\"font-size:9px;margin-top:4px;\">Cámara</div></td></tr>"
-                + "</table>"
-                + "<div style=\"width:110px;height:4px;background:#ffffff;border-radius:3px;margin:18px auto 0;opacity:.8;\"></div>"
-                + "</div>";
-    }
-
     private String appRow() {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">"
                 + "<tr><td style=\"width:32px;\"><div style=\"width:28px;height:28px;border-radius:8px;background:#1769e0;"
@@ -205,8 +183,6 @@ public class NotificationEmailTemplate {
             case "calendar" -> "<rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M8 3v4M16 3v4M3 10h18\"/>";
             case "clock" -> "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/>";
             case "pin" -> "<path d=\"M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z\"/><circle cx=\"12\" cy=\"10\" r=\"2.5\"/>";
-            case "flashlight" -> "<path d=\"M9 3h6l-1 5 3 3v8H7v-8l3-3-1-5Z\"/><path d=\"M10 19h4\"/>";
-            case "camera" -> "<path d=\"M4 8h4l2-2h4l2 2h4v11H4V8Z\"/><circle cx=\"12\" cy=\"13\" r=\"3\"/>";
             default -> "";
         };
         return "<svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" "
