@@ -29,7 +29,11 @@ class NotificationEmailTemplateTest {
 
         String html = template.workerHtml(request, notification);
 
-        assertTrue(html.contains("Alerta clara."));
+        assertTrue(html.contains(">Servicio entrante</div>"));
+        assertTrue(html.contains("Información sobre tu solicitud en OficioYa."));
+        assertTrue(!html.contains("Alerta clara."));
+        assertTrue(!html.contains("Respuesta inmediata."));
+        assertTrue(!html.contains("El trabajador recibe la información esencial"));
         assertTrue(html.contains(">Servicio entrante</td></tr>"));
         assertTrue(!html.contains("SOLICITUDES"));
         assertTrue(html.contains("https://images.test/fuga.jpg"));
