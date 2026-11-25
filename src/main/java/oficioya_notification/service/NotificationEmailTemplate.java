@@ -291,8 +291,17 @@ public class NotificationEmailTemplate {
         String[] copy = statusCopy(typeOf(request, notification));
         String description = valueOr(notification != null ? notification.getDescription() : null,
                 valueOr(request.description(), "Revisa los detalles en OficioYa."));
+        NotificationType type = typeOf(request, notification);
         String requestId = String.valueOf(notification != null && notification.getRequestId() != null
                 ? notification.getRequestId() : request.requestId());
+        String ratingUrl = frontUrl.replaceAll("/+$", "") + "/solicitudes?calificar=" + requestId;
+
+        String ratingButton = type == NotificationType.COMPLETED_WORK
+                ? "<div style=\"margin-top:14px;\">"
+                + "<a href=\"" + escape(ratingUrl) + "\" style=\"display:inline-block;padding:10px 16px;"
+                + "background:" + COLOR_PRIMARY + ";color:#ffffff;text-decoration:none;border-radius:10px;"
+                + "font-weight:700;font-size:13px;\">Calificar el servicio</a></div>"
+                : "";
 
         return htmlShell(
                 "<tr><td align=\"center\" style=\"padding:26px 16px 34px;\">"
@@ -316,8 +325,9 @@ public class NotificationEmailTemplate {
                 + escape(description) + "</div>"
                 + "<div class=\"oficioya-accent\" style=\"font-size:10px;color:" + COLOR_ACCENT + ";margin-top:10px;\">Referencia "
                 + escape(requestId) + "</div>"
+                + ratingButton
                 + "</div>"
-                + "</td></tr>", notificationLabel(typeOf(request, notification)));
+                + "</td></tr>", notificationLabel(type));
     }
 
     private NotificationType typeOf(NotificationRequest request, Notification notification) {
