@@ -1,9 +1,12 @@
 package oficioya_notification.service;
 
+import java.util.Base64;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -44,9 +47,18 @@ public class EmailNotificationService {
 
     /** Envía el correo enriquecido con una alternativa en texto plano para clientes que no renderizan HTML. */
     public String sendHtmlEmail(EmailRequest request, String html) {
+        return sendHtmlEmail(request, html, null, null);
+    }
+
+    /**
+     * Igual que {@link #sendHtmlEmail(EmailRequest, String)} pero incrusta la foto
+     * de la solicitud como recurso CID. No depende de que Images sirva la URL.
+     */
+    public String sendHtmlEmail(EmailRequest request, String html,
+                                String imageBase64, String imageContentType) {
         validateRecipient(request.to(), true);
         try {
-            deliverHtml(request, html);
+            deliverHtml(request, html, imageBase64, imageContentType);
             log.info("Correo HTML enviado a {} (tipo: {})", request.to(), request.type());
             return "Recibido: correo enviado a " + request.to();
         } catch (Exception e) {
@@ -97,6 +109,11 @@ public class EmailNotificationService {
     }
 
     private void deliverHtml(EmailRequest request, String html) throws Exception {
+        deliverHtml(request, html, null, null);
+    }
+
+    private void deliverHtml(EmailRequest request, String html,
+                             String imageBase64, String imageContentType) throws Exception {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         if (mimeMessage == null) {
             throw new EmailDeliveryException("JavaMailSender no devolvió un mensaje MIME válido.");
@@ -110,6 +127,12 @@ public class EmailNotificationService {
         helper.setSubject(request.subject() != null ? request.subject() : "Notificación OficioYa");
         helper.setText(request.body() != null ? request.body() : "", html);
         helper.addInline("oficioya-logo", new ClassPathResource("brand/logo.png"));
+        if (imageBase64 != null && !imageBase64.isBlank()) {
+            byte[] bytes = Base64.getDecoder().decode(imageBase64);
+            String contentType = imageContentType == null || imageContentType.isBlank()
+                    ? "image/jpeg" : imageContentType;
+            helper.addInline("request-photo", new ByteArrayResource(bytes), contentType);
+        }
         mailSender.send(mimeMessage);
     }
 

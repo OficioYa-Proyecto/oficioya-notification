@@ -88,7 +88,8 @@ public class NotificationService {
             String subject = "Solicitud entrante en OficioYa";
             emailNotificationService.sendHtmlEmail(
                     new EmailRequest(email, subject, emailTemplate.plainText(request, noti), "INCOMING_REQUEST"),
-                    emailTemplate.workerHtml(request, noti));
+                    emailTemplate.workerHtml(request, noti),
+                    request.imageBase64(), request.imageContentType());
             return;
         }
         emailNotificationService.sendHtmlEmail(

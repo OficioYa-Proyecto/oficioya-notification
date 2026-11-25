@@ -114,7 +114,9 @@ class NotificationServiceTest {
         notificationService.sendNotification(req);
 
         ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
-        verify(emailNotificationService).sendHtmlEmail(captor.capture(), org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"));
+        verify(emailNotificationService).sendHtmlEmail(captor.capture(),
+                org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"),
+                org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.isNull());
         EmailRequest email = captor.getValue();
         assertEquals("trabajador@correo.com", email.to());
         assertEquals("Solicitud entrante en OficioYa", email.subject());

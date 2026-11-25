@@ -44,7 +44,9 @@ public class NotificationEmailTemplate {
         String timeValue = formatTime(request.scheduledDateTime());
         String neighborhood = valueOr(request.neighborhood(), "Laureles");
         String address = valueOr(request.exactAddress(), "Cra. 74 # 39-25");
-        String image = valueOr(request.imageUrl(), DEFAULT_IMAGE);
+        String image = (request.imageBase64() != null && !request.imageBase64().isBlank())
+                ? "cid:request-photo"
+                : valueOr(request.imageUrl(), DEFAULT_IMAGE);
         String description = valueOr(request.description(),
                 valueOr(notification.getDescription(), "Nueva reparación cerca de ti"));
 
