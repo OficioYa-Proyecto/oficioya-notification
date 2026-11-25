@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import oficioya_notification.dto.NotificationRequest;
 import oficioya_notification.entity.Notification;
+import oficioya_notification.model.NotificationType;
 
 /**
  * Genera el HTML de los correos de solicitudes. La paleta y el logo se tomaron
@@ -116,6 +117,99 @@ public class NotificationEmailTemplate {
                 + "ID de solicitud: " + notification.getRequestId() + "\n"
                 + "Aceptar: " + valueOr(request.acceptUrl(), "(no disponible)") + "\n"
                 + "Rechazar: " + valueOr(request.rejectUrl(), "(no disponible)") + "\n";
+    }
+
+    /**
+     * Asunto de los cambios de estado de una solicitud. Aceptar, rechazar,
+     * cancelar y completar comparten plantilla, pero no mensaje.
+     */
+    public String statusSubject(NotificationRequest request, Notification notification) {
+        NotificationType type = typeOf(request, notification);
+        return switch (type) {
+            case ACCEPTED_REQUEST -> "Tu solicitud en OficioYa fue aceptada";
+            case REJECTED_REQUEST -> "Tu solicitud en OficioYa fue rechazada";
+            case CANCELLED_BY_CONTRACTOR -> "Una solicitud en OficioYa fue cancelada";
+            case CANCELLED_BY_WORKER -> "Un trabajador canceló tu solicitud en OficioYa";
+            case COMPLETED_WORK -> "El trabajo en OficioYa fue completado";
+            case REVIEW_REPORTED -> "Reporte de reseña en OficioYa";
+            default -> notification != null && notification.getTitle() != null && !notification.getTitle().isBlank()
+                    ? notification.getTitle() : "Notificación OficioYa";
+        };
+    }
+
+    /** Texto plano alternativo del correo de cambio de estado. */
+    public String statusPlain(NotificationRequest request, Notification notification) {
+        String[] copy = statusCopy(typeOf(request, notification));
+        String description = valueOr(notification != null ? notification.getDescription() : null,
+                valueOr(request.description(), ""));
+        String requestId = String.valueOf(notification != null && notification.getRequestId() != null
+                ? notification.getRequestId() : request.requestId());
+
+        return "OficioYa\n"
+                + copy[0] + "\n\n"
+                + copy[1] + "\n"
+                + (description.isBlank() ? "" : description + "\n")
+                + "\nID de solicitud: " + requestId + "\n\n"
+                + "OficioYa";
+    }
+
+    /** Tarjeta HTML de los cambios de estado, con la misma paleta que las demás plantillas. */
+    public String statusHtml(NotificationRequest request, Notification notification) {
+        String[] copy = statusCopy(typeOf(request, notification));
+        String description = valueOr(notification != null ? notification.getDescription() : null,
+                valueOr(request.description(), "Revisa los detalles en OficioYa."));
+        String requestId = String.valueOf(notification != null && notification.getRequestId() != null
+                ? notification.getRequestId() : request.requestId());
+
+        return htmlShell(
+                "<tr><td align=\"center\" style=\"padding:26px 16px 34px;\">"
+                + "<div style=\"max-width:460px;margin:0 auto;background:" + COLOR_SURFACE + ";"
+                + "border:1px solid " + COLOR_BORDER + ";border-radius:16px;padding:16px 18px;"
+                + "box-shadow:0 8px 30px rgba(36,49,45,.08);"
+                + "animation:notification-in 900ms cubic-bezier(.22,1.28,.36,1) both;\">"
+                + brandRow("Estado de la solicitud")
+                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:14px;\">"
+                + "<tr><td width=\"42\" valign=\"top\">"
+                + "<div style=\"width:36px;height:36px;border-radius:50%;background:" + COLOR_PRIMARY_SOFT
+                + ";line-height:36px;text-align:center;color:" + COLOR_PRIMARY
+                + ";font-size:18px;font-weight:700;\">&#10003;</div></td>"
+                + "<td align=\"left\" valign=\"top\" style=\"padding-left:12px;\">"
+                + "<div style=\"font-size:16px;font-weight:750;color:" + COLOR_TEXT + ";\">"
+                + escape(copy[0]) + "</div>"
+                + "<div style=\"font-size:12px;color:" + COLOR_MUTED + ";line-height:18px;margin-top:4px;\">"
+                + escape(copy[1]) + "</div>"
+                + "</td></tr></table>"
+                + "<div style=\"margin-top:12px;font-size:12px;color:" + COLOR_TEXT + ";line-height:18px;\">"
+                + escape(description) + "</div>"
+                + "<div style=\"font-size:10px;color:" + COLOR_ACCENT + ";margin-top:10px;\">Referencia "
+                + escape(requestId) + "</div>"
+                + "</div>"
+                + "</td></tr>");
+    }
+
+    private NotificationType typeOf(NotificationRequest request, Notification notification) {
+        if (notification != null && notification.getState() != null) {
+            return notification.getState();
+        }
+        return request != null ? request.type() : null;
+    }
+
+    private String[] statusCopy(NotificationType type) {
+        return switch (type) {
+            case ACCEPTED_REQUEST -> new String[] { "Solicitud aceptada",
+                    "El trabajador aceptó tu solicitud. Puedes revisar los detalles en OficioYa." };
+            case REJECTED_REQUEST -> new String[] { "Solicitud rechazada",
+                    "El trabajador rechazó tu solicitud. Puedes publicar una nueva cuando quieras." };
+            case CANCELLED_BY_CONTRACTOR -> new String[] { "Solicitud cancelada",
+                    "El contratante canceló la solicitud. Ya no estará activa." };
+            case CANCELLED_BY_WORKER -> new String[] { "Solicitud cancelada por el trabajador",
+                    "El trabajador canceló la solicitud. Puedes publicar una nueva cuando quieras." };
+            case COMPLETED_WORK -> new String[] { "Trabajo completado",
+                    "El trabajador marcó el servicio como terminado." };
+            case REVIEW_REPORTED -> new String[] { "Reseña reportada",
+                    "Reporte de reseña recibido. El administrador lo revisará." };
+            default -> new String[] { "Notificación OficioYa", "Hay novedades sobre tu solicitud." };
+        };
     }
 
     private String htmlShell(String content) {
