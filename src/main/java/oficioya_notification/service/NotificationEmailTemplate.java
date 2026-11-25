@@ -273,10 +273,10 @@ public class NotificationEmailTemplate {
                 + "<td align=\"right\" style=\"font-size:11px;letter-spacing:1px;color:rgba(255,255,255,.85);\">"
                 + escape(notificationLabel) + "</td></tr>"
                 + "</table>"
-                + "<div style=\"font-size:20px;font-weight:750;color:#ffffff;margin-top:16px;\">Alerta clara.</div>"
-                + "<div style=\"font-size:20px;font-weight:750;color:#ffffff;\">Respuesta inmediata.</div>"
+                + "<div style=\"font-size:20px;font-weight:750;color:#ffffff;margin-top:16px;\">"
+                + escape(notificationLabel) + "</div>"
                 + "<div style=\"font-size:13px;line-height:20px;color:rgba(255,255,255,.9);margin-top:8px;\">"
-                + "El trabajador recibe la información esencial en el momento justo.</div>"
+                + "Información sobre tu solicitud en OficioYa.</div>"
                 + "</td></tr>"
                 + content
                 + "<tr><td align=\"center\" class=\"oficioya-muted\" style=\"padding:18px 0 26px;font-size:11px;color:" + COLOR_MUTED
