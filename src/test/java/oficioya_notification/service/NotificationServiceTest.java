@@ -93,6 +93,30 @@ class NotificationServiceTest {
     }
 
     @Test
+    void sendNotificationConFotosUsaElCarruselEnLosDosCorreos() {
+        UUID requestId = UUID.randomUUID();
+        List<String> photos = List.of("YQ==", "Yg==");
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), null, null, "Tu solicitud fue creada",
+                NotificationType.REQUEST_CREATED, requestId, null, null, "contratante@correo.com",
+                null, null, null, null, null, null, null, null, photos, List.of("image/jpeg", "image/jpeg"));
+        Notification entity = new Notification();
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.REQUEST_CREATED, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.contractorHtml(req, entity)).thenReturn("<html>carrusel</html>");
+
+        notificationService.sendNotification(req);
+
+        verify(emailNotificationService).sendHtmlEmailWithPhotos(any(EmailRequest.class),
+                org.mockito.ArgumentMatchers.eq("<html>carrusel</html>"),
+                org.mockito.ArgumentMatchers.eq(photos), any());
+    }
+
+    @Test
     void sendNotificationINCOMING_REQUESTEnviaCorreoAlTrabajador() {
         UUID requestId = UUID.randomUUID();
         NotificationRequest req = new NotificationRequest(

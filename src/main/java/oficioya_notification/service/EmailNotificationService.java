@@ -1,6 +1,7 @@
 package oficioya_notification.service;
 
 import java.util.Base64;
+import java.util.List;
 import java.util.Locale;
 
 import org.slf4j.Logger;
@@ -71,6 +72,21 @@ public class EmailNotificationService {
         }
     }
 
+    /** Variante con varias fotos incrustadas (CID request-photo-1, -2, ...) para el carrusel. */
+    public String sendHtmlEmailWithPhotos(EmailRequest request, String html,
+                                          List<String> photoBase64s, List<String> photoContentTypes) {
+        validateRecipient(request.to(), true);
+        try {
+            deliverHtmlWithPhotos(request, html, photoBase64s, photoContentTypes);
+            log.info("Correo HTML con carrusel enviado a {} (tipo: {})", request.to(), request.type());
+            return "Recibido: correo enviado a " + request.to();
+        } catch (Exception e) {
+            reportFailure(request, "SMTP", e);
+            throw new EmailDeliveryException(
+                    "No se pudo enviar correo HTML a " + request.to() + ": " + detail(e), e);
+        }
+    }
+
     /**
      * Envía al correo de soporte un aviso con el error de entrega. Se usa tanto
      * para fallos SMTP como para fallos FCM reportados por NotificationService.
@@ -112,11 +128,22 @@ public class EmailNotificationService {
     }
 
     private void deliverHtml(EmailRequest request, String html) throws Exception {
-        deliverHtml(request, html, null, null);
+        deliverHtmlInternal(request, html, null, null, null, null);
     }
 
     private void deliverHtml(EmailRequest request, String html,
                              String imageBase64, String imageContentType) throws Exception {
+        deliverHtmlInternal(request, html, imageBase64, imageContentType, null, null);
+    }
+
+    private void deliverHtmlWithPhotos(EmailRequest request, String html,
+                                       List<String> photoBase64s, List<String> photoContentTypes) throws Exception {
+        deliverHtmlInternal(request, html, null, null, photoBase64s, photoContentTypes);
+    }
+
+    private void deliverHtmlInternal(EmailRequest request, String html,
+                                     String imageBase64, String imageContentType,
+                                     List<String> photoBase64s, List<String> photoContentTypes) throws Exception {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         if (mimeMessage == null) {
             throw new EmailDeliveryException("JavaMailSender no devolvió un mensaje MIME válido.");
@@ -130,11 +157,23 @@ public class EmailNotificationService {
         helper.setSubject(request.subject() != null ? request.subject() : "Notificación OficioYa");
         helper.setText(request.body() != null ? request.body() : "", html);
         helper.addInline("oficioya-logo", new ClassPathResource("brand/logo.png"));
-        if (imageBase64 != null && !imageBase64.isBlank()) {
-            byte[] bytes = Base64.getDecoder().decode(imageBase64);
+        if (photoBase64s != null && !photoBase64s.isEmpty()) {
+            for (int i = 0; i < photoBase64s.size(); i++) {
+                String encoded = photoBase64s.get(i);
+                if (encoded == null || encoded.isBlank()) {
+                    continue;
+                }
+                String contentType = photoContentTypes != null && i < photoContentTypes.size()
+                        && photoContentTypes.get(i) != null && !photoContentTypes.get(i).isBlank()
+                        ? photoContentTypes.get(i) : "image/jpeg";
+                helper.addInline("request-photo-" + (i + 1),
+                        new ByteArrayResource(Base64.getDecoder().decode(encoded)), contentType);
+            }
+        } else if (imageBase64 != null && !imageBase64.isBlank()) {
             String contentType = imageContentType == null || imageContentType.isBlank()
                     ? "image/jpeg" : imageContentType;
-            helper.addInline("request-photo", new ByteArrayResource(bytes), contentType);
+            helper.addInline("request-photo",
+                    new ByteArrayResource(Base64.getDecoder().decode(imageBase64)), contentType);
         }
         mailSender.send(mimeMessage);
     }

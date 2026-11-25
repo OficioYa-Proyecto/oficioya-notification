@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 import jakarta.mail.BodyPart;
 import jakarta.mail.Session;
@@ -70,6 +71,19 @@ class EmailNotificationServiceTest {
                 html.append(text);
             } else if (content instanceof MimeMultipart nested) {
                 collect(nested, html);
+            }
+        }
+    }
+
+    private void collectIds(MimeMultipart multipart, StringBuilder ids) throws Exception {
+        for (int i = 0; i < multipart.getCount(); i++) {
+            BodyPart part = multipart.getBodyPart(i);
+            String[] header = part.getHeader("Content-ID");
+            if (header != null) {
+                ids.append(String.join(",", header));
+            }
+            if (part.getContent() instanceof MimeMultipart nested) {
+                collectIds(nested, ids);
             }
         }
     }
@@ -156,6 +170,25 @@ class EmailNotificationServiceTest {
         verify(sender).send(captor.capture());
         assertEquals("OficioYa <oficioya.notificaciones@gmail.com>", captor.getValue().getFrom()[0].toString());
         assertTrue(htmlOf(captor.getValue()).contains("Servicio entrante"));
+    }
+
+    @Test
+    void enviaCorreoConVariasFotosIncrustadasParaElCarrusel() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = senderWithMessages();
+        setMailSender(service, sender);
+
+        service.sendHtmlEmailWithPhotos(
+                new EmailRequest("destino@example.com", "Asunto", "Texto plano", "INCOMING_REQUEST"),
+                "<html><body>cid:request-photo-1 cid:request-photo-2</body></html>",
+                List.of("YQ==", "Yg=="), List.of("image/jpeg", "image/png"));
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(captor.capture());
+        StringBuilder ids = new StringBuilder();
+        collectIds((MimeMultipart) captor.getValue().getContent(), ids);
+        assertTrue(ids.toString().contains("request-photo-1"));
+        assertTrue(ids.toString().contains("request-photo-2"));
     }
 
     @Test

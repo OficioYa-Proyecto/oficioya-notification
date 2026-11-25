@@ -75,21 +75,34 @@ public class NotificationService {
             throw new EmailDeliveryException(
                     "Correo del destinatario vacío; no se envió el correo. Revise la resolución de correos en Service.");
         }
+        boolean hasCarousel = request.photoBase64s() != null && !request.photoBase64s().isEmpty();
         if (request.type() == NotificationType.REQUEST_CREATED) {
             String subject = "Tu solicitud en OficioYa fue creada";
             String plain = "Solicitud enviada\nLos trabajadores disponibles ya fueron notificados.\n\n"
                     + "ID de solicitud: " + noti.getRequestId() + "\n\nOficioYa";
-            emailNotificationService.sendHtmlEmail(
-                    new EmailRequest(email, subject, plain, "REQUEST_CREATED"),
-                    emailTemplate.contractorHtml(request, noti));
+            if (hasCarousel) {
+                emailNotificationService.sendHtmlEmailWithPhotos(
+                        new EmailRequest(email, subject, plain, "REQUEST_CREATED"),
+                        emailTemplate.contractorHtml(request, noti),
+                        request.photoBase64s(), request.photoContentTypes());
+            } else {
+                emailNotificationService.sendHtmlEmail(
+                        new EmailRequest(email, subject, plain, "REQUEST_CREATED"),
+                        emailTemplate.contractorHtml(request, noti));
+            }
             return;
         }
         if (request.type() == NotificationType.INCOMING_REQUEST) {
             String subject = "Solicitud entrante en OficioYa";
-            emailNotificationService.sendHtmlEmail(
-                    new EmailRequest(email, subject, emailTemplate.plainText(request, noti), "INCOMING_REQUEST"),
-                    emailTemplate.workerHtml(request, noti),
-                    request.imageBase64(), request.imageContentType());
+            EmailRequest mail = new EmailRequest(email, subject,
+                    emailTemplate.plainText(request, noti), "INCOMING_REQUEST");
+            if (hasCarousel) {
+                emailNotificationService.sendHtmlEmailWithPhotos(mail, emailTemplate.workerHtml(request, noti),
+                        request.photoBase64s(), request.photoContentTypes());
+            } else {
+                emailNotificationService.sendHtmlEmail(mail, emailTemplate.workerHtml(request, noti),
+                        request.imageBase64(), request.imageContentType());
+            }
             return;
         }
         emailNotificationService.sendHtmlEmail(
