@@ -16,7 +16,8 @@ import oficioya_notification.model.NotificationType;
  * el archivo Logo.png incrustado como imagen CID.
  *
  * Funciona en tema claro y oscuro. El modo oscuro usa !important para
- * sobreescribir estilos en línea y jamás invierte las imágenes.
+ * sobreescribir estilos en línea y jamás invierte las imágenes. Los botones
+ * son fluidos y se apilan en pantallas estrechas para no desbordar el celular.
  */
 @Component
 public class NotificationEmailTemplate {
@@ -259,6 +260,13 @@ public class NotificationEmailTemplate {
                 + ".oficioya-primary-soft{background:#3a261f !important;}"
                 + ".oficioya-photo,.oficioya-logo,img{filter:none !important;-webkit-filter:none !important;}"
                 + "}"
+                + "@media only screen and (max-width:480px){"
+                + ".oficioya-action-cell,u + .body .oficioya-action-cell{display:block !important;"
+                + "width:100% !important;padding:6px 0 !important;}"
+                + ".oficioya-action,u + .body .oficioya-action{display:block !important;width:100% !important;"
+                + "max-width:100% !important;min-width:0 !important;box-sizing:border-box !important;"
+                + "padding:12px 8px !important;text-align:center !important;}"
+                + "}"
                 + "</style></head>"
                 + "<body class=\"oficioya-bg\" style=\"margin:0;padding:0;background:" + COLOR_BG
                 + ";font-family:'DM Sans Variable',Arial,Helvetica,sans-serif;color:" + COLOR_TEXT + ";\">"
@@ -338,8 +346,10 @@ public class NotificationEmailTemplate {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
                 + "style=\"margin-top:16px;border-top:1px solid " + COLOR_BORDER + ";table-layout:fixed;\">"
                 + "<tr>"
-                + "<td width=\"50%\" align=\"center\" style=\"padding:14px 4px;\">" + rejectButton + "</td>"
-                + "<td width=\"50%\" align=\"center\" style=\"padding:14px 4px;\">" + acceptButton + "</td>"
+                + "<td class=\"oficioya-action-cell\" width=\"50%\" align=\"center\" style=\"padding:12px 4px;\">"
+                + rejectButton + "</td>"
+                + "<td class=\"oficioya-action-cell\" width=\"50%\" align=\"center\" style=\"padding:12px 4px;\">"
+                + acceptButton + "</td>"
                 + "</tr></table>";
     }
 
@@ -348,8 +358,9 @@ public class NotificationEmailTemplate {
                 ? "background:" + COLOR_PRIMARY + ";border:1px solid " + COLOR_PRIMARY + ";color:#ffffff;"
                 : "background:transparent;border:1px solid " + COLOR_BORDER + ";color:" + COLOR_PRIMARY + ";";
         return "<a class=\"oficioya-action" + (primary ? "" : " oficioya-border oficioya-primary") + "\" href=\""
-                + escape(url) + "\" role=\"button\" style=\"display:inline-block;min-width:120px;"
-                + "padding:10px 14px;border-radius:10px;text-decoration:none;font-size:12px;font-weight:700;"
+                + escape(url) + "\" role=\"button\" style=\"display:block;width:100%;max-width:100%;"
+                + "box-sizing:border-box;min-width:0;padding:10px 8px;border-radius:10px;"
+                + "text-decoration:none;font-size:12px;line-height:16px;text-align:center;font-weight:700;"
                 + style + "\">" + escape(label) + "</a>";
     }
 
