@@ -200,6 +200,11 @@ class NotificationEmailTemplateTest {
         assertTrue(html.contains(">Aceptar solicitud</a>"));
         assertTrue(html.contains(">Rechazar solicitud</a>"));
         assertTrue(html.contains("role=\"button\""));
+        assertTrue(html.contains("class=\"oficioya-action-cell\""));
+        assertTrue(html.contains("display:block;width:100%;max-width:100%;box-sizing:border-box;min-width:0"));
+        assertTrue(html.contains("@media only screen and (max-width:480px)"));
+        assertTrue(!html.contains("min-width:120px"));
+        assertTrue(!html.contains("padding:10px 14px"));
         assertTrue(!html.contains("Ahora no"));
         assertTrue(!html.contains(">Ver solicitud</td>"));
     }
