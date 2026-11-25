@@ -142,6 +142,25 @@ public class NotificationEmailTemplate {
         return htmlShell(content, "Seguridad de tu cuenta", "Un cambio en tu cuenta OficioYa.");
     }
 
+    /** Correo de activación con el código de verificación y su vigencia. */
+    public String registrationCodeHtml(String body) {
+        String code = firstMatch("(\\d{4,8})", body, "------");
+        String minutes = firstMatch("(\\d+)\\s*minutos", body, null);
+        String validity = minutes == null
+                ? "Este código tiene una vigencia limitada."
+                : "Válido por " + minutes + " minutos.";
+        String content = recoveryCard("Activación de cuenta", "Código de activación",
+                "Usa este código en OficioYa para activar tu cuenta:",
+                "<div class=\"oficioya-primary-soft\" style=\"margin-top:16px;padding:14px 8px;background:"
+                        + COLOR_PRIMARY_SOFT + ";border-radius:14px;text-align:center;font-size:30px;"
+                        + "font-weight:750;letter-spacing:8px;color:" + COLOR_PRIMARY + ";\">"
+                        + escape(code) + "</div>"
+                        + "<div class=\"oficioya-muted\" style=\"margin-top:8px;text-align:center;font-size:12px;"
+                        + "color:" + COLOR_MUTED + ";\">" + escape(validity) + "</div>",
+                "Si no solicitaste esta activación, puedes ignorar este correo.");
+        return htmlShell(content, "Activación de cuenta", "Activa tu cuenta OficioYa.");
+    }
+
     private String recoveryCard(String label, String title, String message,
                                 String extra, String note) {
         return "<tr><td align=\"center\" style=\"padding:28px 16px 34px;\">"

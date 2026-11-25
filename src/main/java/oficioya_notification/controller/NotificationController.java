@@ -105,7 +105,7 @@ public class NotificationController {
     }
 
     @PostMapping("/email")
-    @Operation(summary = "Enviar correo", description = "Envía un correo al destinatario indicado (OTP, cambio de contraseña, etc.). Responde confirmación de recepción.")
+    @Operation(summary = "Enviar correo", description = "Envía un correo al destinatario indicado (OTP, cambio de contraseña, activación, etc.). Responde confirmación de recepción.")
     @PreAuthorize("hasAnyRole('ADMIN','SERVICE')")
     public ResponseEntity<String> sendEmail(@Valid @RequestBody EmailRequest request) {
         String result = emailNotificationService.sendEmail(request);

@@ -306,4 +306,25 @@ class EmailNotificationServiceTest {
         assertTrue(html.contains("Ir a OficioYa"));
         assertTrue(html.contains("prefers-color-scheme: dark"));
     }
+
+    @Test
+    void correoDeActivacionUsaPlantillaConCodigoYValido() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = senderWithMessages();
+        setMailSender(service, sender);
+
+        service.sendEmail(new EmailRequest("destino@example.com", "Código de activación de cuenta - OficioYa",
+                "Tu código de activación para OficioYa es: 849201 (válido por 10 minutos).", "REGISTRATION_CODE"));
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(captor.capture());
+        String html = htmlOf(captor.getValue());
+        assertTrue(html.contains("Código de activación"));
+        assertTrue(html.contains("849201"));
+        assertTrue(html.contains("Válido por 10 minutos"));
+        assertTrue(html.contains("Usa este código en OficioYa para activar tu cuenta:"));
+        assertTrue(html.contains("prefers-color-scheme: dark"));
+        assertTrue(html.contains("background:#ffffff !important"));
+        assertTrue(html.contains("filter:none !important"));
+    }
 }
