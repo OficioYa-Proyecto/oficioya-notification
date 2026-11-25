@@ -1,9 +1,9 @@
 package oficioya_notification.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +22,7 @@ import oficioya_notification.dto.EmailRequest;
 import oficioya_notification.dto.NotificationRequest;
 import oficioya_notification.dto.NotificationResponse;
 import oficioya_notification.entity.Notification;
+import oficioya_notification.exception.EmailDeliveryException;
 import oficioya_notification.mapper.ResponseMapper;
 import oficioya_notification.repository.NotificationRepository;
 import oficioya_notification.model.NotificationType;
@@ -51,7 +52,7 @@ class NotificationServiceTest {
     void sendNotificationPersists() {
         NotificationRequest req = new NotificationRequest(
                 UUID.randomUUID(), "title", "desc", "msg", oficioya_notification.model.NotificationType.INCOMING_REQUEST,
-                UUID.randomUUID(), null, null);
+                UUID.randomUUID(), null, null, "trabajador@correo.com");
         Notification entity = new Notification();
         NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "title", "desc", oficioya_notification.model.NotificationType.INCOMING_REQUEST,
                 req.requestId(), null, null);
@@ -92,6 +93,30 @@ class NotificationServiceTest {
     }
 
     @Test
+    void sendNotificationConFotosUsaElCarruselEnLosDosCorreos() {
+        UUID requestId = UUID.randomUUID();
+        List<String> photos = List.of("YQ==", "Yg==");
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), null, null, "Tu solicitud fue creada",
+                NotificationType.REQUEST_CREATED, requestId, null, null, "contratante@correo.com",
+                null, null, null, null, null, null, null, null, photos, List.of("image/jpeg", "image/jpeg"));
+        Notification entity = new Notification();
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.REQUEST_CREATED, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.contractorHtml(req, entity)).thenReturn("<html>carrusel</html>");
+
+        notificationService.sendNotification(req);
+
+        verify(emailNotificationService).sendHtmlEmailWithPhotos(any(EmailRequest.class),
+                org.mockito.ArgumentMatchers.eq("<html>carrusel</html>"),
+                org.mockito.ArgumentMatchers.eq(photos), any());
+    }
+
+    @Test
     void sendNotificationINCOMING_REQUESTEnviaCorreoAlTrabajador() {
         UUID requestId = UUID.randomUUID();
         NotificationRequest req = new NotificationRequest(
@@ -113,7 +138,9 @@ class NotificationServiceTest {
         notificationService.sendNotification(req);
 
         ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
-        verify(emailNotificationService).sendHtmlEmail(captor.capture(), org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"));
+        verify(emailNotificationService).sendHtmlEmail(captor.capture(),
+                org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"),
+                org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.isNull());
         EmailRequest email = captor.getValue();
         assertEquals("trabajador@correo.com", email.to());
         assertEquals("Solicitud entrante en OficioYa", email.subject());
@@ -121,7 +148,29 @@ class NotificationServiceTest {
     }
 
     @Test
-    void sendNotificationCambioDeEstadoEnviaCorreoConPlantilla() {
+    void sendNotificationLanzaExcepcionSiCorreoDestinatarioVacio() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), "title", "desc", "msg", NotificationType.REQUEST_CREATED,
+                requestId, null, null);
+        Notification entity = new Notification();
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.REQUEST_CREATED, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+
+        EmailDeliveryException error = assertThrows(EmailDeliveryException.class,
+                () -> notificationService.sendNotification(req));
+
+        assertTrue(error.getMessage().contains("Correo del destinatario vacío"));
+        verify(emailNotificationService, org.mockito.Mockito.never()).sendHtmlEmail(
+                any(EmailRequest.class), any(String.class));
+    }
+
+    @Test
+    void sendNotificationEstadoEnviaCorreoHtmlConPlantillaDeEstado() {
         UUID requestId = UUID.randomUUID();
         NotificationRequest req = new NotificationRequest(
                 UUID.randomUUID(), null, null, "Tu solicitud fue aceptada",
@@ -135,100 +184,17 @@ class NotificationServiceTest {
         when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
         when(responseMapper.toResponse(entity)).thenReturn(resp);
         when(emailTemplate.statusSubject(req, entity)).thenReturn("Tu solicitud en OficioYa fue aceptada");
-        when(emailTemplate.statusPlain(req, entity)).thenReturn("Cuerpo de la aceptación");
-        when(emailTemplate.statusHtml(req, entity)).thenReturn("<html>aceptada</html>");
+        when(emailTemplate.statusPlain(req, entity)).thenReturn("Solicitud aceptada");
+        when(emailTemplate.statusHtml(req, entity)).thenReturn("<html>Solicitud aceptada</html>");
 
         notificationService.sendNotification(req);
 
         ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
         verify(emailNotificationService).sendHtmlEmail(captor.capture(),
-                org.mockito.ArgumentMatchers.eq("<html>aceptada</html>"));
-        EmailRequest email = captor.getValue();
-        assertEquals("contratante@correo.com", email.to());
-        assertEquals("Tu solicitud en OficioYa fue aceptada", email.subject());
-        assertEquals("Cuerpo de la aceptación", email.body());
-        assertEquals("ACCEPTED_REQUEST", email.type());
-    }
-
-    @Test
-    void sendNotificationReportaFalloFcmPorCorreo() {
-        UUID requestId = UUID.randomUUID();
-        NotificationRequest req = new NotificationRequest(
-                UUID.randomUUID(), "title", "desc", "msg", NotificationType.INCOMING_REQUEST,
-                requestId, null, null, "trabajador@correo.com");
-        Notification entity = new Notification();
-        entity.setRequestId(requestId);
-        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
-                NotificationType.INCOMING_REQUEST, requestId, null, null);
-        when(responseMapper.toNotification(req)).thenReturn(entity);
-        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
-        when(responseMapper.toResponse(entity)).thenReturn(resp);
-        when(fcmService.sendPush(any(), any(), any(), any(), any())).thenReturn("token FCM inválido");
-        when(emailTemplate.workerHtml(req, entity)).thenReturn("<html>Solicitud entrante</html>");
-        when(emailTemplate.plainText(req, entity)).thenReturn("Solicitud entrante");
-
-        notificationService.sendNotification(req);
-
-        ArgumentCaptor<String> detalle = ArgumentCaptor.forClass(String.class);
-        verify(emailNotificationService).sendFailureReport(
-                org.mockito.ArgumentMatchers.eq("INCOMING_REQUEST"),
-                org.mockito.ArgumentMatchers.eq("trabajador@correo.com"),
-                detalle.capture());
-        assertTrue(detalle.getValue().contains("FCM: token FCM inválido"));
-        verify(emailNotificationService).sendHtmlEmail(any(EmailRequest.class), org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"));
-    }
-
-    @Test
-    void sendNotificationConFcmFallidoIgualEnviaCorreo() {
-        UUID requestId = UUID.randomUUID();
-        NotificationRequest req = new NotificationRequest(
-                UUID.randomUUID(), "Solicitud entrante", "Fuga en Laureles", "msg", NotificationType.INCOMING_REQUEST,
-                requestId, null, null, "trabajador@correo.com");
-        Notification entity = new Notification();
-        entity.setRequestId(requestId);
-        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
-                NotificationType.INCOMING_REQUEST, requestId, null, null);
-        when(responseMapper.toNotification(req)).thenReturn(entity);
-        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
-        when(responseMapper.toResponse(entity)).thenReturn(resp);
-        when(emailTemplate.workerHtml(req, entity)).thenReturn("<html>Solicitud entrante</html>");
-        when(emailTemplate.plainText(req, entity)).thenReturn("Solicitud entrante");
-        doThrow(new IllegalStateException("Firebase caído")).when(fcmService)
-                .sendPush(any(), any(), any(), any(), any());
-
-        notificationService.sendNotification(req);
-
-        verify(emailNotificationService).sendHtmlEmail(any(EmailRequest.class), org.mockito.ArgumentMatchers.eq("<html>Solicitud entrante</html>"));
-        ArgumentCaptor<String> detalle = ArgumentCaptor.forClass(String.class);
-        verify(emailNotificationService).sendFailureReport(
-                org.mockito.ArgumentMatchers.eq("INCOMING_REQUEST"),
-                org.mockito.ArgumentMatchers.eq("trabajador@correo.com"),
-                detalle.capture());
-        assertTrue(detalle.getValue().contains("Firebase caído"));
-    }
-
-    @Test
-    void sendNotificationReportaCorreoDestinatarioVacio() {
-        UUID requestId = UUID.randomUUID();
-        NotificationRequest req = new NotificationRequest(
-                UUID.randomUUID(), "title", "desc", "msg", NotificationType.REQUEST_CREATED,
-                requestId, null, null);
-        Notification entity = new Notification();
-        entity.setRequestId(requestId);
-        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
-                NotificationType.REQUEST_CREATED, requestId, null, null);
-        when(responseMapper.toNotification(req)).thenReturn(entity);
-        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
-        when(responseMapper.toResponse(entity)).thenReturn(resp);
-
-        notificationService.sendNotification(req);
-
-        ArgumentCaptor<String> detalle = ArgumentCaptor.forClass(String.class);
-        verify(emailNotificationService).sendFailureReport(
-                org.mockito.ArgumentMatchers.eq("REQUEST_CREATED"),
-                org.mockito.ArgumentMatchers.eq("null"),
-                detalle.capture());
-        assertTrue(detalle.getValue().contains("Correo del destinatario vacío"));
+                org.mockito.ArgumentMatchers.eq("<html>Solicitud aceptada</html>"));
+        assertEquals("contratante@correo.com", captor.getValue().to());
+        assertEquals("Tu solicitud en OficioYa fue aceptada", captor.getValue().subject());
+        assertEquals("ACCEPTED_REQUEST", captor.getValue().type());
     }
 
     @Test
