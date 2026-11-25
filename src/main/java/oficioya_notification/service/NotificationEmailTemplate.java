@@ -3,7 +3,10 @@ package oficioya_notification.service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import oficioya_notification.dto.NotificationRequest;
@@ -38,6 +41,9 @@ public class NotificationEmailTemplate {
     private static final String COLOR_ACCENT = "#b7462b";
     private static final String COLOR_TEXT = "#24312d";
     private static final String COLOR_MUTED = "#68736f";
+
+    @Value("${oficioya.front.url:https://oficioya-front-app-egh6gjc3b0aearhq.chilecentral-01.azurewebsites.net}")
+    private String frontUrl = "https://oficioya-front-app-egh6gjc3b0aearhq.chilecentral-01.azurewebsites.net";
 
     public String workerHtml(NotificationRequest request, Notification notification) {
         String dateValue = formatDate(request.scheduledDateTime());
@@ -104,6 +110,65 @@ public class NotificationEmailTemplate {
                 + "</td></tr></table>"
                 + "</div>"
                 + "</td></tr>", "Solicitud enviada");
+    }
+
+    /** Correo de recuperación de acceso con el OTP destacado y enlace al front. */
+    public String passwordResetHtml(String body) {
+        String code = firstMatch("(\\d{4,8})", body, "------");
+        String minutes = firstMatch("(\\d+)\\s*minutos", body, null);
+        String validity = minutes == null
+                ? "Este código tiene una vigencia limitada."
+                : "Válido por " + minutes + " minutos.";
+
+        String content = recoveryCard("Recuperación de acceso", "Restablece tu contraseña",
+                "Usa este código en OficioYa para continuar:",
+                "<div class=\"oficioya-primary-soft\" style=\"margin-top:16px;padding:14px 8px;background:"
+                        + COLOR_PRIMARY_SOFT + ";border-radius:14px;text-align:center;font-size:30px;"
+                        + "font-weight:750;letter-spacing:8px;color:" + COLOR_PRIMARY + ";\">"
+                        + escape(code) + "</div>"
+                        + "<div class=\"oficioya-muted\" style=\"margin-top:8px;text-align:center;font-size:12px;"
+                        + "color:" + COLOR_MUTED + ";\">" + escape(validity) + "</div>",
+                "Si no solicitaste este cambio, puedes ignorar este correo.");
+        return htmlShell(content, "Recuperación de acceso", "Te ayudamos a recuperar el acceso a tu cuenta.");
+    }
+
+    /** Aviso de contraseña cambiada con enlace al front para iniciar sesión. */
+    public String passwordChangedHtml(String body) {
+        String content = recoveryCard("Seguridad de tu cuenta", "Contraseña actualizada",
+                "Tu contraseña en OficioYa fue actualizada exitosamente.", "",
+                "Si no fuiste tú, cambia tu contraseña de inmediato.");
+        return htmlShell(content, "Seguridad de tu cuenta", "Un cambio en tu cuenta OficioYa.");
+    }
+
+    private String recoveryCard(String label, String title, String message,
+                                String extra, String note) {
+        return "<tr><td align=\"center\" style=\"padding:28px 16px 34px;\">"
+                + "<div class=\"oficioya-surface\" style=\"max-width:460px;margin:0 auto;background:" + COLOR_SURFACE + ";"
+                + "border:1px solid " + COLOR_BORDER + ";border-radius:16px;padding:18px;"
+                + "box-shadow:0 8px 30px rgba(36,49,45,.08);"
+                + "animation:notification-in 900ms cubic-bezier(.22,1.28,.36,1) both;\">"
+                + brandRow(label)
+                + "<div class=\"oficioya-text\" style=\"margin-top:18px;font-size:19px;font-weight:750;color:"
+                + COLOR_TEXT + ";\">" + escape(title) + "</div>"
+                + "<div class=\"oficioya-muted\" style=\"margin-top:8px;font-size:13px;line-height:20px;color:"
+                + COLOR_MUTED + ";\">" + escape(message) + "</div>"
+                + extra
+                + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
+                + "style=\"margin-top:18px;border-top:1px solid " + COLOR_BORDER + ";\">"
+                + "<tr><td class=\"oficioya-action-cell\" align=\"center\" style=\"padding:14px 4px 4px;\">"
+                + actionButton(frontUrl + "/auth", "Ir a OficioYa", true)
+                + "</td></tr></table>"
+                + "<div class=\"oficioya-muted\" style=\"margin-top:10px;font-size:11px;line-height:17px;"
+                + "color:" + COLOR_MUTED + ";\">" + escape(note) + "</div>"
+                + "</div></td></tr>";
+    }
+
+    private String firstMatch(String regex, String text, String fallback) {
+        if (text == null || text.isBlank()) {
+            return fallback;
+        }
+        Matcher matcher = Pattern.compile(regex).matcher(text);
+        return matcher.find() ? matcher.group(1) : fallback;
     }
 
     public String plainText(NotificationRequest request, Notification notification) {
@@ -242,6 +307,10 @@ public class NotificationEmailTemplate {
      * oscura con !important. Las imágenes nunca se invierten.
      */
     private String htmlShell(String content, String notificationLabel) {
+        return htmlShell(content, notificationLabel, "Información sobre tu solicitud en OficioYa.");
+    }
+
+    private String htmlShell(String content, String notificationLabel, String subtitle) {
         return "<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
                 + "<meta name=\"color-scheme\" content=\"light dark\">"
@@ -286,7 +355,7 @@ public class NotificationEmailTemplate {
                 + "<div style=\"font-size:20px;font-weight:750;color:#ffffff;margin-top:16px;\">"
                 + escape(notificationLabel) + "</div>"
                 + "<div style=\"font-size:13px;line-height:20px;color:rgba(255,255,255,.9);margin-top:8px;\">"
-                + "Información sobre tu solicitud en OficioYa.</div>"
+                + escape(subtitle) + "</div>"
                 + "</td></tr>"
                 + content
                 + "<tr><td align=\"center\" class=\"oficioya-muted\" style=\"padding:18px 0 26px;font-size:11px;color:" + COLOR_MUTED

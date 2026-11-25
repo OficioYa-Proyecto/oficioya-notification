@@ -1,6 +1,7 @@
 package oficioya_notification.service;
 
 import java.util.Base64;
+import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +32,13 @@ public class EmailNotificationService {
     @Value("${notification.fallback.email:}")
     private String fallbackEmail;
 
+    private final NotificationEmailTemplate recoveryTemplate = new NotificationEmailTemplate();
+
     /** Envía cualquier correo con cuerpo HTML y texto plano alternativo. */
     public String sendEmail(EmailRequest request) {
         validateRecipient(request.to(), false);
         try {
-            deliverHtml(request, htmlFromText(request.body()));
+            deliverHtml(request, htmlFor(request));
             log.info("Correo enviado a {} (tipo: {})", request.to(), request.type());
             return "Recibido: correo enviado a " + request.to();
         } catch (Exception e) {
@@ -134,6 +137,18 @@ public class EmailNotificationService {
             helper.addInline("request-photo", new ByteArrayResource(bytes), contentType);
         }
         mailSender.send(mimeMessage);
+    }
+
+    /** Los correos de cuenta usan una tarjeta dedicada; el resto mantiene el envoltorio general. */
+    private String htmlFor(EmailRequest request) {
+        String type = request.type() == null ? "" : request.type().trim().toUpperCase(Locale.ROOT);
+        if ("RESET_CODE".equals(type)) {
+            return recoveryTemplate.passwordResetHtml(request.body());
+        }
+        if ("PASSWORD_CHANGED".equals(type)) {
+            return recoveryTemplate.passwordChangedHtml(request.body());
+        }
+        return htmlFromText(request.body());
     }
 
     /** Envuelve el texto plano en HTML con la identidad visual de OficioYa y soporte de tema oscuro. */

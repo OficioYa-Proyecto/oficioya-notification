@@ -234,4 +234,43 @@ class EmailNotificationServiceTest {
         assertTrue(error.getMessage().contains("SMTP caído"));
         verify(sender, org.mockito.Mockito.times(2)).send(any(MimeMessage.class));
     }
+
+    @Test
+    void correoDeRecuperacionUsaPlantillaConCodigoYBoton() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = senderWithMessages();
+        setMailSender(service, sender);
+
+        service.sendEmail(new EmailRequest("destino@example.com", "Código de recuperación de contraseña - OficioYa",
+                "Tu código de recuperación es: 123456 (válido por 15 minutos).", "RESET_CODE"));
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(captor.capture());
+        String html = htmlOf(captor.getValue());
+        assertTrue(html.contains("Restablece tu contraseña"));
+        assertTrue(html.contains("123456"));
+        assertTrue(html.contains("Válido por 15 minutos"));
+        assertTrue(html.contains("Ir a OficioYa"));
+        assertTrue(html.contains("prefers-color-scheme: dark"));
+        assertTrue(html.contains("background:#ffffff !important"));
+        assertTrue(html.contains("filter:none !important"));
+    }
+
+    @Test
+    void avisoDeCambioDeContrasenaUsaPlantillaSegura() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = senderWithMessages();
+        setMailSender(service, sender);
+
+        service.sendEmail(new EmailRequest("destino@example.com", "Aviso de cambio de contraseña - OficioYa",
+                "Tu contraseña en OficioYa fue actualizada exitosamente.", "PASSWORD_CHANGED"));
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(captor.capture());
+        String html = htmlOf(captor.getValue());
+        assertTrue(html.contains("Contraseña actualizada"));
+        assertTrue(html.contains("Si no fuiste tú"));
+        assertTrue(html.contains("Ir a OficioYa"));
+        assertTrue(html.contains("prefers-color-scheme: dark"));
+    }
 }
