@@ -1,6 +1,7 @@
 package oficioya_notification.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -21,6 +22,7 @@ import oficioya_notification.dto.EmailRequest;
 import oficioya_notification.dto.NotificationRequest;
 import oficioya_notification.dto.NotificationResponse;
 import oficioya_notification.entity.Notification;
+import oficioya_notification.exception.EmailDeliveryException;
 import oficioya_notification.mapper.ResponseMapper;
 import oficioya_notification.repository.NotificationRepository;
 import oficioya_notification.model.NotificationType;
@@ -50,7 +52,7 @@ class NotificationServiceTest {
     void sendNotificationPersists() {
         NotificationRequest req = new NotificationRequest(
                 UUID.randomUUID(), "title", "desc", "msg", oficioya_notification.model.NotificationType.INCOMING_REQUEST,
-                UUID.randomUUID(), null, null);
+                UUID.randomUUID(), null, null, "trabajador@correo.com");
         Notification entity = new Notification();
         NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "title", "desc", oficioya_notification.model.NotificationType.INCOMING_REQUEST,
                 req.requestId(), null, null);
@@ -117,6 +119,56 @@ class NotificationServiceTest {
         assertEquals("trabajador@correo.com", email.to());
         assertEquals("Solicitud entrante en OficioYa", email.subject());
         assertEquals("INCOMING_REQUEST", email.type());
+    }
+
+    @Test
+    void sendNotificationLanzaExcepcionSiCorreoDestinatarioVacio() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), "title", "desc", "msg", NotificationType.REQUEST_CREATED,
+                requestId, null, null);
+        Notification entity = new Notification();
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.REQUEST_CREATED, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+
+        EmailDeliveryException error = assertThrows(EmailDeliveryException.class,
+                () -> notificationService.sendNotification(req));
+
+        assertTrue(error.getMessage().contains("Correo del destinatario vacío"));
+        verify(emailNotificationService, org.mockito.Mockito.never()).sendHtmlEmail(
+                any(EmailRequest.class), any(String.class));
+    }
+
+    @Test
+    void sendNotificationEstadoEnviaCorreoHtmlConPlantillaDeEstado() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), null, null, "Tu solicitud fue aceptada",
+                NotificationType.ACCEPTED_REQUEST, requestId, null, null, "contratante@correo.com");
+        Notification entity = new Notification();
+        entity.setState(NotificationType.ACCEPTED_REQUEST);
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.ACCEPTED_REQUEST, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.statusSubject(req, entity)).thenReturn("Tu solicitud en OficioYa fue aceptada");
+        when(emailTemplate.statusPlain(req, entity)).thenReturn("Solicitud aceptada");
+        when(emailTemplate.statusHtml(req, entity)).thenReturn("<html>Solicitud aceptada</html>");
+
+        notificationService.sendNotification(req);
+
+        ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
+        verify(emailNotificationService).sendHtmlEmail(captor.capture(),
+                org.mockito.ArgumentMatchers.eq("<html>Solicitud aceptada</html>"));
+        assertEquals("contratante@correo.com", captor.getValue().to());
+        assertEquals("Tu solicitud en OficioYa fue aceptada", captor.getValue().subject());
+        assertEquals("ACCEPTED_REQUEST", captor.getValue().type());
     }
 
     @Test

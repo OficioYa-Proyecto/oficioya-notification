@@ -10,6 +10,7 @@ import oficioya_notification.dto.EmailRequest;
 import oficioya_notification.dto.NotificationRequest;
 import oficioya_notification.dto.NotificationResponse;
 import oficioya_notification.entity.Notification;
+import oficioya_notification.exception.EmailDeliveryException;
 import oficioya_notification.mapper.ResponseMapper;
 import oficioya_notification.model.NotificationType;
 import oficioya_notification.repository.NotificationRepository;
@@ -62,6 +63,7 @@ public class NotificationService {
                 noti.getTitle(), noti.getDescription(),
                 java.util.Map.of("type", String.valueOf(request.type()), "requestId", String.valueOf(request.requestId())));
 
+        // Si el correo falla se propaga EmailDeliveryException: la API responde error.
         sendEmailIfRequested(request, noti);
 
         return response;
@@ -70,7 +72,8 @@ public class NotificationService {
     private void sendEmailIfRequested(NotificationRequest request, Notification noti) {
         String email = request.receiverEmail();
         if (email == null || email.isBlank()) {
-            return;
+            throw new EmailDeliveryException(
+                    "Correo del destinatario vacío; no se envió el correo. Revise la resolución de correos en Service.");
         }
         if (request.type() == NotificationType.REQUEST_CREATED) {
             String subject = "Tu solicitud en OficioYa fue creada";
@@ -88,11 +91,12 @@ public class NotificationService {
                     emailTemplate.workerHtml(request, noti));
             return;
         }
-        String subject = noti.getTitle() != null ? noti.getTitle() : "Notificación OficioYa";
-        String body = (noti.getDescription() != null ? noti.getDescription() : "")
-                + "\n\nID de solicitud: " + noti.getRequestId()
-                + "\n\nOficioYa";
-        emailNotificationService.sendEmail(new EmailRequest(email, subject, body, String.valueOf(request.type())));
+        emailNotificationService.sendHtmlEmail(
+                new EmailRequest(email,
+                        emailTemplate.statusSubject(request, noti),
+                        emailTemplate.statusPlain(request, noti),
+                        String.valueOf(request.type())),
+                emailTemplate.statusHtml(request, noti));
     }
 
     public boolean deleteNotification(UUID requestId) {

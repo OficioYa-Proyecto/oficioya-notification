@@ -1,23 +1,27 @@
 package oficioya_notification.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 
+import jakarta.mail.BodyPart;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import oficioya_notification.dto.EmailRequest;
+import oficioya_notification.exception.EmailDeliveryException;
 
 class EmailNotificationServiceTest {
 
@@ -33,106 +37,198 @@ class EmailNotificationServiceTest {
         field.set(service, username);
     }
 
-    @Test
-    void destinatarioVacioNoEnvia() {
-        EmailNotificationService service = new EmailNotificationService();
-        assertEquals("Recibido: destinatario vacío",
-                service.sendEmail(new EmailRequest("  ", "asunto", "cuerpo", "REQUEST_CREATED")));
+    private void setFallbackEmail(EmailNotificationService service, String email) throws Exception {
+        Field field = EmailNotificationService.class.getDeclaredField("fallbackEmail");
+        field.setAccessible(true);
+        field.set(service, email);
+    }
+
+    private JavaMailSender senderWithMessages() {
+        JavaMailSender sender = mock(JavaMailSender.class);
+        when(sender.createMimeMessage()).thenAnswer(invocation -> new MimeMessage((Session) null));
+        return sender;
+    }
+
+    private String htmlOf(MimeMessage message) throws Exception {
+        Object content = message.getContent();
+        if (content instanceof String text) {
+            return text;
+        }
+        if (content instanceof MimeMultipart multipart) {
+            StringBuilder html = new StringBuilder();
+            collect(multipart, html);
+            return html.toString();
+        }
+        return "";
+    }
+
+    private void collect(MimeMultipart multipart, StringBuilder html) throws Exception {
+        for (int i = 0; i < multipart.getCount(); i++) {
+            BodyPart part = multipart.getBodyPart(i);
+            Object content = part.getContent();
+            if (content instanceof String text) {
+                html.append(text);
+            } else if (content instanceof MimeMultipart nested) {
+                collect(nested, html);
+            }
+        }
     }
 
     @Test
-    void sinMailSenderNoEnvia() {
+    void destinatarioVacioLanzaExcepcion() {
         EmailNotificationService service = new EmailNotificationService();
-        assertTrue(service.sendEmail(new EmailRequest("destino@example.com", "asunto", "cuerpo", "REQUEST_CREATED"))
-                .contains("mail no configurado"));
+        EmailDeliveryException error = assertThrows(EmailDeliveryException.class,
+                () -> service.sendEmail(new EmailRequest("  ", "asunto", "cuerpo", "REQUEST_CREATED")));
+        assertTrue(error.getMessage().contains("Destinatario vacío"));
+    }
+
+    @Test
+    void sinMailSenderLanzaExcepcion() {
+        EmailNotificationService service = new EmailNotificationService();
+        EmailDeliveryException error = assertThrows(EmailDeliveryException.class,
+                () -> service.sendEmail(new EmailRequest("destino@example.com", "asunto", "cuerpo", "REQUEST_CREATED")));
+        assertTrue(error.getMessage().contains("no configurado"));
     }
 
     @Test
     void enviaCorreoConValoresPorDefecto() throws Exception {
         EmailNotificationService service = new EmailNotificationService();
-        JavaMailSender sender = mock(JavaMailSender.class);
+        JavaMailSender sender = senderWithMessages();
         setMailSender(service, sender);
 
         String result = service.sendEmail(new EmailRequest("destino@example.com", null, null, "REQUEST_CREATED"));
 
         assertEquals("Recibido: correo enviado a destino@example.com", result);
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(sender).send(captor.capture());
         assertEquals("Notificación OficioYa", captor.getValue().getSubject());
-        assertEquals("", captor.getValue().getText());
+        assertEquals("destino@example.com", captor.getValue().getAllRecipients()[0].toString());
+        assertTrue(htmlOf(captor.getValue()).contains("<!doctype html>"));
     }
 
     @Test
     void enviaCorreoConAsuntoYCuerpo() throws Exception {
         EmailNotificationService service = new EmailNotificationService();
-        JavaMailSender sender = mock(JavaMailSender.class);
+        JavaMailSender sender = senderWithMessages();
         setMailSender(service, sender);
 
         service.sendEmail(new EmailRequest("destino@example.com", "Asunto", "Cuerpo", "INCOMING_REQUEST"));
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(sender).send(captor.capture());
         assertEquals("Asunto", captor.getValue().getSubject());
-        assertEquals("Cuerpo", captor.getValue().getText());
+        assertTrue(htmlOf(captor.getValue()).contains("Cuerpo"));
+        assertTrue(htmlOf(captor.getValue()).contains("prefers-color-scheme: dark"));
+        assertTrue(htmlOf(captor.getValue()).contains("filter:none !important"));
     }
 
     @Test
     void enviaCorreoConRemitenteOficioYa() throws Exception {
         EmailNotificationService service = new EmailNotificationService();
-        JavaMailSender sender = mock(JavaMailSender.class);
+        JavaMailSender sender = senderWithMessages();
         setMailSender(service, sender);
         setSmtpUsername(service, "oficioya.notificaciones@gmail.com");
 
         service.sendEmail(new EmailRequest("destino@example.com", "Asunto", "Cuerpo", "REQUEST_CREATED"));
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(sender).send(captor.capture());
-        assertEquals("OficioYa <oficioya.notificaciones@gmail.com>", captor.getValue().getFrom());
+        assertEquals("OficioYa <oficioya.notificaciones@gmail.com>", captor.getValue().getFrom()[0].toString());
     }
 
     @Test
     void enviaCorreoHtmlConRemitenteOficioYa() throws Exception {
         EmailNotificationService service = new EmailNotificationService();
-        JavaMailSender sender = mock(JavaMailSender.class);
+        JavaMailSender sender = senderWithMessages();
         setMailSender(service, sender);
         setSmtpUsername(service, "oficioya.notificaciones@gmail.com");
-        when(sender.createMimeMessage()).thenReturn(new MimeMessage((Session) null));
 
         String result = service.sendHtmlEmail(
                 new EmailRequest("destino@example.com", "Asunto", "Texto plano", "INCOMING_REQUEST"),
-                "<html><body>Solicitud entrante</body></html>");
+                "<html><body>Servicio entrante</body></html>");
 
         assertEquals("Recibido: correo enviado a destino@example.com", result);
         verify(sender).createMimeMessage();
-        verify(sender).send(any(MimeMessage.class));
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(captor.capture());
+        assertEquals("OficioYa <oficioya.notificaciones@gmail.com>", captor.getValue().getFrom()[0].toString());
+        assertTrue(htmlOf(captor.getValue()).contains("Servicio entrante"));
     }
 
     @Test
-    void correoHtmlSinDestinatarioNoSeEnvia() {
+    void correoHtmlSinDestinatarioLanzaExcepcion() {
         EmailNotificationService service = new EmailNotificationService();
-        assertEquals("Recibido: destinatario vacío", service.sendHtmlEmail(
+        assertThrows(EmailDeliveryException.class, () -> service.sendHtmlEmail(
                 new EmailRequest(" ", "Asunto", "Texto", "REQUEST_CREATED"), "<html></html>"));
     }
 
     @Test
-    void correoHtmlSinMailSenderNoSeEnvia() {
+    void correoHtmlSinMailSenderLanzaExcepcion() {
         EmailNotificationService service = new EmailNotificationService();
-        assertTrue(service.sendHtmlEmail(
-                new EmailRequest("destino@example.com", "Asunto", "Texto", "REQUEST_CREATED"), "<html></html>")
-                .contains("mail no configurado"));
+        assertThrows(EmailDeliveryException.class, () -> service.sendHtmlEmail(
+                new EmailRequest("destino@example.com", "Asunto", "Texto", "REQUEST_CREATED"), "<html></html>"));
     }
 
     @Test
-    void errorDeEnvioSeReportaSinLanzar() throws Exception {
+    void errorDeEnvioSeReportaYLanzaExcepcion() throws Exception {
         EmailNotificationService service = new EmailNotificationService();
-        JavaMailSender sender = mock(JavaMailSender.class);
-        doThrow(new IllegalStateException("SMTP caído")).when(sender).send(any(SimpleMailMessage.class));
+        JavaMailSender sender = senderWithMessages();
+        doThrow(new IllegalStateException("SMTP caído")).when(sender).send(any(MimeMessage.class));
+        setMailSender(service, sender);
+        setFallbackEmail(service, "soporte@example.com");
+
+        EmailDeliveryException error = assertThrows(EmailDeliveryException.class,
+                () -> service.sendEmail(new EmailRequest("destino@example.com", "Asunto", "Cuerpo", "REQUEST_CREATED")));
+
+        assertTrue(error.getMessage().contains("SMTP caído"));
+        verify(sender, org.mockito.Mockito.times(2)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void reporteDeFalloSeEnvíaAlCorreoDeSoporte() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = senderWithMessages();
+        setMailSender(service, sender);
+        setFallbackEmail(service, "soporte@example.com");
+        setSmtpUsername(service, "oficioya.notificaciones@gmail.com");
+
+        String result = service.sendFailureReport("FCM", "trabajador@correo.com", "token inválido");
+
+        assertEquals("Recibido: reporte enviado a soporte@example.com", result);
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(captor.capture());
+        assertEquals("soporte@example.com", captor.getValue().getAllRecipients()[0].toString());
+        assertTrue(captor.getValue().getSubject().contains("FCM"));
+        assertTrue(htmlOf(captor.getValue()).contains("token inválido"));
+        assertTrue(htmlOf(captor.getValue()).contains("prefers-color-scheme: dark"));
+    }
+
+    @Test
+    void reporteDeFalloSinCorreoDeSoporteNoSeEnvia() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = senderWithMessages();
         setMailSender(service, sender);
 
-        String result = service.sendEmail(new EmailRequest("destino@example.com", "Asunto", "Cuerpo", "REQUEST_CREATED"));
+        String result = service.sendFailureReport("FCM", "trabajador@correo.com", "token inválido");
 
-        assertTrue(result.contains("error al enviar correo"));
-        assertTrue(result.contains("SMTP caído"));
-        verify(sender).send(any(SimpleMailMessage.class));
+        assertTrue(result.contains("sin correo de soporte"));
+        verify(sender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void errorDeEnvioHtmlGeneraReporteYLanzaExcepcion() throws Exception {
+        EmailNotificationService service = new EmailNotificationService();
+        JavaMailSender sender = senderWithMessages();
+        doThrow(new IllegalStateException("SMTP caído")).when(sender).send(any(MimeMessage.class));
+        setMailSender(service, sender);
+        setFallbackEmail(service, "soporte@example.com");
+
+        EmailDeliveryException error = assertThrows(EmailDeliveryException.class,
+                () -> service.sendHtmlEmail(
+                        new EmailRequest("destino@example.com", "Asunto", "Texto", "INCOMING_REQUEST"),
+                        "<html></html>"));
+
+        assertTrue(error.getMessage().contains("SMTP caído"));
+        verify(sender, org.mockito.Mockito.times(2)).send(any(MimeMessage.class));
     }
 }
