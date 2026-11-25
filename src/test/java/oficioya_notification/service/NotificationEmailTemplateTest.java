@@ -42,7 +42,7 @@ class NotificationEmailTemplateTest {
         assertTrue(html.contains("cid:oficioya-logo"));
         assertTrue(html.contains("Laureles"));
         assertTrue(html.contains("a 1,2 km"));
-        assertTrue(html.contains("Ver solicitud"));
+        assertTrue(html.contains("Responde desde la app de OficioYa."));
         assertTrue(html.contains("notification-in"));
         assertTrue(html.contains("4.2s"));
     }
@@ -157,7 +157,7 @@ class NotificationEmailTemplateTest {
         assertTrue(worker.contains("photo-1581244277943"));
         assertTrue(worker.contains("Lun, 2 de marzo"));
         assertTrue(worker.contains("Nueva reparación cerca de ti"));
-        assertTrue(worker.contains("Ver solicitud"));
+        assertTrue(worker.contains("Responde desde la app de OficioYa."));
 
         String contractor = template.contractorHtml(request, notification);
         assertTrue(contractor.contains("Referencia null"));
@@ -171,6 +171,47 @@ class NotificationEmailTemplateTest {
         notification.setTitle("Título de la notificación");
         assertEquals("Título de la notificación", template.statusSubject(sinTipo, notification));
         assertTrue(template.statusPlain(sinTipo, notification).contains("Notificación OficioYa"));
+    }
+
+    @Test
+    void botonesDelCorreoApuntanALaAccionFirmada() {
+        UUID requestId = UUID.fromString("11111111-2222-3333-4444-555555555555");
+        String accept = "https://service.test/api/v1/requests/email/accept?requestId=" + requestId + "&token=abc";
+        String reject = "https://service.test/api/v1/requests/email/reject?requestId=" + requestId + "&token=xyz";
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), "Solicitud entrante", "Fuga de agua", "msg",
+                NotificationType.INCOMING_REQUEST, requestId, null, null, "trabajador@correo.com",
+                LocalDateTime.of(2026, 3, 2, 10, 30), "Laureles", "Cra. 74 # 39-25",
+                "https://images.test/fuga.jpg", accept, reject);
+        Notification notification = new Notification();
+        notification.setDescription("Fuga de agua");
+        notification.setRequestId(requestId);
+
+        String html = template.workerHtml(request, notification);
+
+        assertTrue(html.contains("href=\"https://service.test/api/v1/requests/email/accept?requestId="
+                + requestId + "&amp;token=abc\""));
+        assertTrue(html.contains("href=\"https://service.test/api/v1/requests/email/reject?requestId="
+                + requestId + "&amp;token=xyz\""));
+        assertTrue(html.contains(">Aceptar solicitud</a>"));
+        assertTrue(html.contains(">Rechazar solicitud</a>"));
+        assertTrue(html.contains("role=\"button\""));
+        assertTrue(!html.contains("Ahora no"));
+        assertTrue(!html.contains(">Ver solicitud</td>"));
+    }
+
+    @Test
+    void enlacesDeAccionInsegurosNoSeRenderizan() {
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), "Solicitud entrante", "Fuga", "msg",
+                NotificationType.INCOMING_REQUEST, UUID.randomUUID(), null, null, "trabajador@correo.com",
+                null, null, null, null, "javascript:alert(1)", "javascript:alert(2)");
+        Notification notification = new Notification();
+
+        String html = template.workerHtml(request, notification);
+
+        assertTrue(!html.contains("javascript:"));
+        assertTrue(html.contains("Responde desde la app de OficioYa."));
     }
 
     @Test

@@ -66,7 +66,7 @@ public class NotificationEmailTemplate {
                 + "<img class=\"oficioya-photo\" src=\"" + escape(image) + "\" alt=\"Fotografía de la avería\" width=\"100%\" height=\"94\" "
                 + "style=\"display:block;width:100%;height:94px;object-fit:cover;border-radius:14px;margin-top:12px;\">"
                 + detailGrid(dateValue, timeValue, neighborhood, address)
-                + actionRow()
+                + actionRow(request.acceptUrl(), request.rejectUrl())
                 + "<div style=\"height:3px;background:" + COLOR_PRIMARY_SOFT + ";border-radius:3px;margin-top:14px;overflow:hidden;\">"
                 + "<div style=\"height:3px;width:100%;background:" + COLOR_PRIMARY
                 + ";transform-origin:left;animation:presence 4.2s linear both;\"></div></div>"
@@ -319,16 +319,47 @@ public class NotificationEmailTemplate {
                 + "</table>";
     }
 
-    private String actionRow() {
+    /**
+     * Botones reales: los enlaces están firmados por Service y ejecutan la acción
+     * al abrirlos, redirigiendo después al front con el resultado.
+     */
+    private String actionRow(String acceptUrl, String rejectUrl) {
+        String accept = safeActionUrl(acceptUrl);
+        String reject = safeActionUrl(rejectUrl);
+        if (accept == null && reject == null) {
+            return "<div class=\"oficioya-muted\" style=\"margin-top:16px;padding-top:12px;border-top:1px solid "
+                    + COLOR_BORDER + ";font-size:12px;color:" + COLOR_MUTED + ";\">"
+                    + "Responde desde la app de OficioYa.</div>";
+        }
+
+        String acceptButton = accept == null ? "" : actionButton(accept, "Aceptar solicitud", true);
+        String rejectButton = reject == null ? "" : actionButton(reject, "Rechazar solicitud", false);
+
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
-                + "style=\"margin-top:14px;border-top:1px solid " + COLOR_BORDER + ";table-layout:fixed;\">"
+                + "style=\"margin-top:16px;border-top:1px solid " + COLOR_BORDER + ";table-layout:fixed;\">"
                 + "<tr>"
-                + "<td width=\"50%\" align=\"center\" class=\"oficioya-muted\" style=\"padding:12px 4px;font-size:12px;color:"
-                + COLOR_MUTED + ";\">Ahora no</td>"
-                + "<td width=\"1\" class=\"oficioya-border\" style=\"background:" + COLOR_BORDER + ";\"></td>"
-                + "<td width=\"50%\" align=\"center\" class=\"oficioya-primary\" style=\"padding:12px 4px;font-size:12px;font-weight:700;color:"
-                + COLOR_PRIMARY + ";\">Ver solicitud</td>"
+                + "<td width=\"50%\" align=\"center\" style=\"padding:14px 4px;\">" + rejectButton + "</td>"
+                + "<td width=\"50%\" align=\"center\" style=\"padding:14px 4px;\">" + acceptButton + "</td>"
                 + "</tr></table>";
+    }
+
+    private String actionButton(String url, String label, boolean primary) {
+        String style = primary
+                ? "background:" + COLOR_PRIMARY + ";border:1px solid " + COLOR_PRIMARY + ";color:#ffffff;"
+                : "background:transparent;border:1px solid " + COLOR_BORDER + ";color:" + COLOR_PRIMARY + ";";
+        return "<a class=\"oficioya-action" + (primary ? "" : " oficioya-border oficioya-primary") + "\" href=\""
+                + escape(url) + "\" role=\"button\" style=\"display:inline-block;min-width:120px;"
+                + "padding:10px 14px;border-radius:10px;text-decoration:none;font-size:12px;font-weight:700;"
+                + style + "\">" + escape(label) + "</a>";
+    }
+
+    /** Sólo se aceptan enlaces http(s); nunca un esquema javascript: o similar. */
+    private String safeActionUrl(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.matches("(?i)^https?://.*") ? trimmed : null;
     }
 
     private String formatDate(LocalDateTime value) {
