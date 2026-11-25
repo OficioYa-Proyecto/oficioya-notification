@@ -1,5 +1,6 @@
 package oficioya_notification.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
@@ -80,5 +81,53 @@ class NotificationEmailTemplateTest {
         assertTrue(text.startsWith("OficioYa"));
         assertTrue(text.contains("Fecha: Lun, 2 de marzo"));
         assertTrue(text.contains("Laureles"));
+    }
+
+    @Test
+    void statusAceptadoIncluyeAsuntoCuerpoYHtml() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), null, null, "Tu solicitud fue aceptada",
+                NotificationType.ACCEPTED_REQUEST, requestId, null, null, "contratante@correo.com");
+        Notification notification = new Notification();
+        notification.setState(NotificationType.ACCEPTED_REQUEST);
+        notification.setRequestId(requestId);
+        notification.setDescription("El trabajador aceptó la reparación");
+
+        assertEquals("Tu solicitud en OficioYa fue aceptada", template.statusSubject(request, notification));
+        String text = template.statusPlain(request, notification);
+        assertTrue(text.contains("Solicitud aceptada"));
+        assertTrue(text.contains("El trabajador aceptó tu solicitud"));
+        assertTrue(text.contains("El trabajador aceptó la reparación"));
+        assertTrue(text.contains("ID de solicitud: " + requestId));
+
+        String html = template.statusHtml(request, notification);
+        assertTrue(html.contains("Solicitud aceptada"));
+        assertTrue(html.contains("El trabajador aceptó tu solicitud"));
+        assertTrue(html.contains("Referencia " + requestId));
+        assertTrue(html.contains("cid:oficioya-logo"));
+        assertTrue(html.contains("#dc623f"));
+    }
+
+    @Test
+    void statusDistingueRechazoCancelacionYTrabajoTerminado() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), null, null, "msg",
+                NotificationType.REJECTED_REQUEST, requestId, null, null, "contratante@correo.com");
+        Notification notification = new Notification();
+        notification.setRequestId(requestId);
+
+        notification.setState(NotificationType.REJECTED_REQUEST);
+        assertTrue(template.statusPlain(request, notification).contains("Solicitud rechazada"));
+        assertEquals("Tu solicitud en OficioYa fue rechazada", template.statusSubject(request, notification));
+
+        notification.setState(NotificationType.CANCELLED_BY_WORKER);
+        assertTrue(template.statusPlain(request, notification).contains("Solicitud cancelada por el trabajador"));
+        assertEquals("Un trabajador canceló tu solicitud en OficioYa", template.statusSubject(request, notification));
+
+        notification.setState(NotificationType.COMPLETED_WORK);
+        assertTrue(template.statusPlain(request, notification).contains("Trabajo completado"));
+        assertEquals("El trabajo en OficioYa fue completado", template.statusSubject(request, notification));
     }
 }

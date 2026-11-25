@@ -106,11 +106,12 @@ public class NotificationService {
                     emailTemplate.workerHtml(request, noti));
             return List.of();
         }
-        String subject = noti.getTitle() != null ? noti.getTitle() : "Notificación OficioYa";
-        String body = (noti.getDescription() != null ? noti.getDescription() : "")
-                + "\n\nID de solicitud: " + noti.getRequestId()
-                + "\n\nOficioYa";
-        emailNotificationService.sendEmail(new EmailRequest(email, subject, body, String.valueOf(request.type())));
+        emailNotificationService.sendHtmlEmail(
+                new EmailRequest(email,
+                        emailTemplate.statusSubject(request, noti),
+                        emailTemplate.statusPlain(request, noti),
+                        String.valueOf(request.type())),
+                emailTemplate.statusHtml(request, noti));
         return List.of();
     }
 

@@ -121,6 +121,36 @@ class NotificationServiceTest {
     }
 
     @Test
+    void sendNotificationCambioDeEstadoEnviaCorreoConPlantilla() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), null, null, "Tu solicitud fue aceptada",
+                NotificationType.ACCEPTED_REQUEST, requestId, null, null, "contratante@correo.com");
+        Notification entity = new Notification();
+        entity.setState(NotificationType.ACCEPTED_REQUEST);
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.ACCEPTED_REQUEST, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.statusSubject(req, entity)).thenReturn("Tu solicitud en OficioYa fue aceptada");
+        when(emailTemplate.statusPlain(req, entity)).thenReturn("Cuerpo de la aceptación");
+        when(emailTemplate.statusHtml(req, entity)).thenReturn("<html>aceptada</html>");
+
+        notificationService.sendNotification(req);
+
+        ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
+        verify(emailNotificationService).sendHtmlEmail(captor.capture(),
+                org.mockito.ArgumentMatchers.eq("<html>aceptada</html>"));
+        EmailRequest email = captor.getValue();
+        assertEquals("contratante@correo.com", email.to());
+        assertEquals("Tu solicitud en OficioYa fue aceptada", email.subject());
+        assertEquals("Cuerpo de la aceptación", email.body());
+        assertEquals("ACCEPTED_REQUEST", email.type());
+    }
+
+    @Test
     void sendNotificationReportaFalloFcmPorCorreo() {
         UUID requestId = UUID.randomUUID();
         NotificationRequest req = new NotificationRequest(
