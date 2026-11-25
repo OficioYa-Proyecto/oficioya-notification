@@ -44,6 +44,10 @@ class NotificationEmailTemplateTest {
         assertTrue(html.contains("#fffcf7"));
         assertTrue(html.contains("#e4ded4"));
         assertTrue(html.contains("cid:oficioya-logo"));
+        assertTrue(html.contains("class=\"oficioya-logo-wrap\""));
+        assertTrue(html.contains("background:#ffffff !important"));
+        assertTrue(html.contains("border-radius:8px"));
+        assertTrue(html.contains("border-radius:6px"));
         assertTrue(html.contains("Laureles"));
         assertTrue(html.contains("a 1,2 km"));
         assertTrue(html.contains("Responde desde la app de OficioYa."));
@@ -243,6 +247,7 @@ class NotificationEmailTemplateTest {
         assertTrue(html.contains(".oficioya-text{color:#f2f5f3 !important"));
         assertTrue(html.contains(".oficioya-muted{color:#a9b7b1 !important"));
         assertTrue(html.contains("class=\"oficioya-photo\""));
+        assertTrue(html.contains(".oficioya-logo-wrap{background:#ffffff !important;}"));
         assertTrue(html.contains(".oficioya-photo,.oficioya-logo,img{filter:none !important"));
         assertTrue(!html.contains("filter:invert"));
         assertTrue(!html.contains("invert(1)"));

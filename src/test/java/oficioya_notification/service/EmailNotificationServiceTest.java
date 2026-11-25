@@ -120,6 +120,9 @@ class EmailNotificationServiceTest {
         assertTrue(htmlOf(captor.getValue()).contains("Cuerpo"));
         assertTrue(htmlOf(captor.getValue()).contains("prefers-color-scheme: dark"));
         assertTrue(htmlOf(captor.getValue()).contains("filter:none !important"));
+        assertTrue(htmlOf(captor.getValue()).contains("oficioya-logo-wrap"));
+        assertTrue(htmlOf(captor.getValue()).contains("background:#ffffff !important"));
+        assertTrue(htmlOf(captor.getValue()).contains("border-radius:8px"));
     }
 
     @Test

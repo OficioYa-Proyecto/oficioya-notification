@@ -258,7 +258,7 @@ public class NotificationEmailTemplate {
                 + ".oficioya-primary{color:#ff8c63 !important;}"
                 + ".oficioya-accent{color:#ffab8a !important;}"
                 + ".oficioya-primary-soft{background:#3a261f !important;}"
-                + ".oficioya-photo,.oficioya-logo,img{filter:none !important;-webkit-filter:none !important;}"
+                + ".oficioya-logo-wrap{background:#ffffff !important;}.oficioya-photo,.oficioya-logo,img{filter:none !important;-webkit-filter:none !important;}"
                 + "}"
                 + "@media only screen and (max-width:480px){"
                 + ".oficioya-action-cell,u + .body .oficioya-action-cell{display:block !important;"
@@ -295,9 +295,11 @@ public class NotificationEmailTemplate {
     private String brandRow(String rightLabel) {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" aria-label=\"OficioYa\">"
                 + "<tr>"
-                + "<td width=\"92\" valign=\"middle\"><img class=\"oficioya-logo\" src=\"" + LOGO_CID
+                + "<td class=\"oficioya-logo-wrap\" width=\"100\" valign=\"middle\" bgcolor=\"#ffffff\" "
+                + "style=\"background:#ffffff !important;border-radius:8px;padding:4px;\">"
+                + "<img class=\"oficioya-logo\" src=\"" + LOGO_CID
                 + "\" alt=\"OficioYa\" width=\"92\" height=\"32\" "
-                + "style=\"display:block;width:92px;height:32px;object-fit:contain;\"></td>"
+                + "style=\"display:block;width:92px;height:32px;object-fit:contain;border-radius:6px;\"></td>"
                 + "<td align=\"right\" valign=\"middle\" class=\"oficioya-muted\" style=\"font-size:11px;color:" + COLOR_MUTED + ";\">"
                 + escape(rightLabel) + "</td>"
                 + "</tr></table>";
