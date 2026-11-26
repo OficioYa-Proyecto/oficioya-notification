@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -265,6 +266,7 @@ public class NotificationEmailTemplate {
             case CANCELLED_BY_WORKER -> "Un trabajador canceló tu solicitud en OficioYa";
             case COMPLETED_WORK -> "El trabajo en OficioYa fue completado";
             case REVIEW_REPORTED -> "Reporte de reseña en OficioYa";
+            case CONFLICT_REQUEST -> "Dos trabajadores aceptaron tu solicitud en OficioYa";
             default -> notification != null && notification.getTitle() != null && !notification.getTitle().isBlank()
                     ? notification.getTitle() : "Notificación OficioYa";
         };
@@ -283,6 +285,8 @@ public class NotificationEmailTemplate {
                 + copy[1] + "\n"
                 + (description.isBlank() ? "" : description + "\n")
                 + "\nID de solicitud: " + requestId + "\n\n"
+                + (typeOf(request, notification) == NotificationType.CONFLICT_REQUEST
+                        ? "Elige al trabajador: " + conflictUrl(request, notification) + "\n\n" : "")
                 + "OficioYa";
     }
 
@@ -301,6 +305,13 @@ public class NotificationEmailTemplate {
                 + "<a href=\"" + escape(ratingUrl) + "\" style=\"display:inline-block;padding:10px 16px;"
                 + "background:" + COLOR_PRIMARY + ";color:#ffffff;text-decoration:none;border-radius:10px;"
                 + "font-weight:700;font-size:13px;\">Calificar el servicio</a></div>"
+                : "";
+
+        String conflictButton = type == NotificationType.CONFLICT_REQUEST
+                ? "<div style=\"margin-top:14px;\">"
+                + "<a href=\"" + escape(conflictUrl(request, notification)) + "\" style=\"display:inline-block;padding:10px 16px;"
+                + "background:" + COLOR_PRIMARY + ";color:#ffffff;text-decoration:none;border-radius:10px;"
+                + "font-weight:700;font-size:13px;\">Elegir trabajador</a></div>"
                 : "";
 
         return htmlShell(
@@ -326,6 +337,7 @@ public class NotificationEmailTemplate {
                 + "<div class=\"oficioya-accent\" style=\"font-size:10px;color:" + COLOR_ACCENT + ";margin-top:10px;\">Referencia "
                 + escape(requestId) + "</div>"
                 + ratingButton
+                + conflictButton
                 + "</div>"
                 + "</td></tr>", notificationLabel(type));
     }
@@ -335,6 +347,18 @@ public class NotificationEmailTemplate {
             return notification.getState();
         }
         return request != null ? request.type() : null;
+    }
+
+    /** El enlace de disputa usa rootId para que el front agrupe todas las respuestas. */
+    private String conflictUrl(NotificationRequest request, Notification notification) {
+        UUID rootId = request != null && request.rootId() != null ? request.rootId() : null;
+        if (rootId == null && notification != null) {
+            rootId = notification.getRequestId();
+        }
+        if (rootId == null && request != null) {
+            rootId = request.requestId();
+        }
+        return frontUrl.replaceAll("/+$", "") + "/solicitudes?conflict=" + rootId;
     }
 
     /** Etiqueta del tipo de notificación en la cabecera del correo. */
@@ -351,6 +375,7 @@ public class NotificationEmailTemplate {
             case CANCELLED_BY_WORKER -> "Solicitud cancelada por el trabajador";
             case COMPLETED_WORK -> "Trabajo completado";
             case REVIEW_REPORTED -> "Reporte de reseña";
+            case CONFLICT_REQUEST -> "Conflicto por resolver";
         };
     }
 
@@ -371,6 +396,8 @@ public class NotificationEmailTemplate {
                     "El trabajador marcó el servicio como terminado." };
             case REVIEW_REPORTED -> new String[] { "Reseña reportada",
                     "Reporte de reseña recibido. El administrador lo revisará." };
+            case CONFLICT_REQUEST -> new String[] { "Conflicto por resolver",
+                    "Dos trabajadores aceptaron tu solicitud. Entra para elegir cuál continúa." };
             default -> new String[] { "Notificación OficioYa", "Hay novedades sobre tu solicitud." };
         };
     }

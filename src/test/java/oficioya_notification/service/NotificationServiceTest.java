@@ -198,6 +198,35 @@ class NotificationServiceTest {
     }
 
     @Test
+    void sendNotificationConflictoEnviaCorreoConTipoYAsuntoDeDisputa() {
+        UUID requestId = UUID.randomUUID();
+        UUID rootId = UUID.randomUUID();
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), "Dos trabajadores aceptaron tu solicitud. Elige cuál continúa.",
+                NotificationType.CONFLICT_REQUEST, requestId, "contratante@correo.com", rootId);
+        Notification entity = new Notification();
+        entity.setState(NotificationType.CONFLICT_REQUEST);
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.CONFLICT_REQUEST, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.statusSubject(req, entity)).thenReturn("Dos trabajadores aceptaron tu solicitud en OficioYa");
+        when(emailTemplate.statusPlain(req, entity)).thenReturn("Conflicto por resolver");
+        when(emailTemplate.statusHtml(req, entity)).thenReturn("<html>Conflicto por resolver</html>");
+
+        notificationService.sendNotification(req);
+
+        ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
+        verify(emailNotificationService).sendHtmlEmail(captor.capture(),
+                org.mockito.ArgumentMatchers.eq("<html>Conflicto por resolver</html>"));
+        assertEquals("contratante@correo.com", captor.getValue().to());
+        assertEquals("Dos trabajadores aceptaron tu solicitud en OficioYa", captor.getValue().subject());
+        assertEquals("CONFLICT_REQUEST", captor.getValue().type());
+    }
+
+    @Test
     void findByIdEmpty() {
         UUID id = UUID.randomUUID();
         when(notificationRepository.findById(id)).thenReturn(Optional.empty());
