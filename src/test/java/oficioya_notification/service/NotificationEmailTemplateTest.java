@@ -185,6 +185,28 @@ class NotificationEmailTemplateTest {
     }
 
     @Test
+    void completarTrabajoIncluyeBotonParaCalificar() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), null, null, "msg",
+                NotificationType.COMPLETED_WORK, requestId, null, null, "destino@correo.com");
+        Notification notification = new Notification();
+        notification.setState(NotificationType.COMPLETED_WORK);
+        notification.setRequestId(requestId);
+        notification.setDescription("El trabajador marcó el servicio como terminado.");
+
+        String plain = template.statusPlain(request, notification);
+        String html = template.statusHtml(request, notification);
+
+        assertTrue(plain.contains("Califica el servicio en OficioYa"));
+        assertTrue(plain.contains("/solicitudes?calificar=" + requestId));
+        assertTrue(html.contains("Calificar el servicio"));
+        assertTrue(html.contains("/solicitudes?calificar=" + requestId));
+        assertTrue(html.contains("role=\"button\""));
+        assertTrue(html.contains("prefers-color-scheme: dark"));
+    }
+
+    @Test
     void plantillasUsanValoresPorDefectoCuandoFaltanDatos() {
         NotificationRequest request = new NotificationRequest(
                 UUID.randomUUID(), null, null, null,
@@ -322,5 +344,17 @@ class NotificationEmailTemplateTest {
         assertTrue(html.contains("href=\"https://oficioya-front-app-egh6gjc3b0aearhq.chilecentral-01.azurewebsites.net"
                 + "/solicitudes?conflict=" + rootId + "\""));
         assertTrue(html.contains("Conflicto por resolver"));
+    }
+
+    @Test
+    void codigoDeActivacionSeRenderizaConCodigoYValido() {
+        String html = template.registrationCodeHtml(
+                "Tu código de activación para OficioYa es: 849201 (válido por 10 minutos).");
+
+        assertTrue(html.contains("Código de activación"));
+        assertTrue(html.contains("849201"));
+        assertTrue(html.contains("Válido por 10 minutos"));
+        assertTrue(html.contains("Usa este código en OficioYa para activar tu cuenta:"));
+        assertTrue(html.contains("prefers-color-scheme: dark"));
     }
 }

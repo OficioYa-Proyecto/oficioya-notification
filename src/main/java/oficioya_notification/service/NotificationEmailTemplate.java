@@ -143,6 +143,25 @@ public class NotificationEmailTemplate {
         return htmlShell(content, "Seguridad de tu cuenta", "Un cambio en tu cuenta OficioYa.");
     }
 
+    /** Correo de activación con el código de verificación y su vigencia. */
+    public String registrationCodeHtml(String body) {
+        String code = firstMatch("(\\d{4,8})", body, "------");
+        String minutes = firstMatch("(\\d+)\\s*minutos", body, null);
+        String validity = minutes == null
+                ? "Este código tiene una vigencia limitada."
+                : "Válido por " + minutes + " minutos.";
+        String content = recoveryCard("Activación de cuenta", "Código de activación",
+                "Usa este código en OficioYa para activar tu cuenta:",
+                "<div class=\"oficioya-primary-soft\" style=\"margin-top:16px;padding:14px 8px;background:"
+                        + COLOR_PRIMARY_SOFT + ";border-radius:14px;text-align:center;font-size:30px;"
+                        + "font-weight:750;letter-spacing:8px;color:" + COLOR_PRIMARY + ";\">"
+                        + escape(code) + "</div>"
+                        + "<div class=\"oficioya-muted\" style=\"margin-top:8px;text-align:center;font-size:12px;"
+                        + "color:" + COLOR_MUTED + ";\">" + escape(validity) + "</div>",
+                "Si no solicitaste esta activación, puedes ignorar este correo.");
+        return htmlShell(content, "Activación de cuenta", "Activa tu cuenta OficioYa.");
+    }
+
     private String recoveryCard(String label, String title, String message,
                                 String extra, String note) {
         return "<tr><td align=\"center\" style=\"padding:28px 16px 34px;\">"
@@ -279,15 +298,21 @@ public class NotificationEmailTemplate {
                 valueOr(request.description(), ""));
         String requestId = String.valueOf(notification != null && notification.getRequestId() != null
                 ? notification.getRequestId() : request.requestId());
+        NotificationType type = typeOf(request, notification);
+
+        String cta = type == NotificationType.COMPLETED_WORK
+                ? "\nCalifica el servicio en OficioYa: " + ratingUrl(requestId) + "\n"
+                : "";
 
         return "OficioYa\n"
                 + copy[0] + "\n\n"
                 + copy[1] + "\n"
                 + (description.isBlank() ? "" : description + "\n")
-                + "\nID de solicitud: " + requestId + "\n\n"
-                + (typeOf(request, notification) == NotificationType.CONFLICT_REQUEST
-                        ? "Elige al trabajador: " + conflictUrl(request, notification) + "\n\n" : "")
-                + "OficioYa";
+                + "\nID de solicitud: " + requestId + "\n"
+                + cta
+                + (type == NotificationType.CONFLICT_REQUEST
+                        ? "Elige al trabajador: " + conflictUrl(request, notification) + "\n" : "")
+                + "\nOficioYa";
     }
 
     /** Tarjeta HTML de los cambios de estado, con la misma paleta que las demás. */
@@ -298,13 +323,12 @@ public class NotificationEmailTemplate {
         NotificationType type = typeOf(request, notification);
         String requestId = String.valueOf(notification != null && notification.getRequestId() != null
                 ? notification.getRequestId() : request.requestId());
-        String ratingUrl = frontUrl.replaceAll("/+$", "") + "/solicitudes?calificar=" + requestId;
-
         String ratingButton = type == NotificationType.COMPLETED_WORK
-                ? "<div style=\"margin-top:14px;\">"
-                + "<a href=\"" + escape(ratingUrl) + "\" style=\"display:inline-block;padding:10px 16px;"
-                + "background:" + COLOR_PRIMARY + ";color:#ffffff;text-decoration:none;border-radius:10px;"
-                + "font-weight:700;font-size:13px;\">Calificar el servicio</a></div>"
+                ? "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
+                + "style=\"margin-top:16px;border-top:1px solid " + COLOR_BORDER + ";\">"
+                + "<tr><td class=\"oficioya-action-cell\" align=\"center\" style=\"padding:14px 4px;\">"
+                + actionButton(ratingUrl(requestId), "Calificar el servicio", true)
+                + "</td></tr></table>"
                 : "";
 
         String conflictButton = type == NotificationType.CONFLICT_REQUEST
@@ -546,6 +570,11 @@ public class NotificationEmailTemplate {
                 + "box-sizing:border-box;min-width:0;padding:10px 8px;border-radius:10px;"
                 + "text-decoration:none;font-size:12px;line-height:16px;text-align:center;font-weight:700;"
                 + style + "\">" + escape(label) + "</a>";
+    }
+
+    /** Enlace al front para calificar el servicio cumplido (válido para ambos roles). */
+    private String ratingUrl(String requestId) {
+        return frontUrl.replaceAll("/+$", "") + "/solicitudes?calificar=" + requestId;
     }
 
     /** Sólo se aceptan enlaces http(s); nunca un esquema javascript: o similar. */
