@@ -97,7 +97,7 @@ public class NotificationController {
     }
 
     @PostMapping("/review-reported")
-    @Operation(summary = "Notificar reseña reportada", description = "Recibe los datos de una reseña reportada y envía un correo al administrador. Responde confirmación de recepción.")
+    @Operation(summary = "Notify reported review", description = "Receives the data of a reported review and sends an email to the administrator. Returns reception confirmation.")
     @PreAuthorize("hasAnyRole('ADMIN','SERVICE')")
     public ResponseEntity<String> notifyReviewReported(@Valid @RequestBody ReviewReportRequest request) {
         String result = reviewReportNotificationService.notifyReviewReported(request);
@@ -105,7 +105,7 @@ public class NotificationController {
     }
 
     @PostMapping("/email")
-    @Operation(summary = "Enviar correo", description = "Envía un correo al destinatario indicado (OTP, cambio de contraseña, activación, etc.). Responde confirmación de recepción.")
+    @Operation(summary = "Send email", description = "Sends an email to the indicated recipient (OTP, password change, activation, etc.). Returns reception confirmation.")
     @PreAuthorize("hasAnyRole('ADMIN','SERVICE')")
     public ResponseEntity<String> sendEmail(@Valid @RequestBody EmailRequest request) {
         String result = emailNotificationService.sendEmail(request);
