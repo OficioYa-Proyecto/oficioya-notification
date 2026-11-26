@@ -347,14 +347,17 @@ class NotificationEmailTemplateTest {
     }
 
     @Test
-    void codigoDeActivacionSeRenderizaConCodigoYValido() {
-        String html = template.registrationCodeHtml(
+    void codigoDeActivacionUsaElMismoCuerpoQueRecuperacion() {
+        String activation = template.registrationCodeHtml(
+                "Tu código de activación para OficioYa es: 849201 (válido por 10 minutos).");
+        String recovery = template.passwordResetHtml(
                 "Tu código de activación para OficioYa es: 849201 (válido por 10 minutos).");
 
-        assertTrue(html.contains("Código de activación"));
-        assertTrue(html.contains("849201"));
-        assertTrue(html.contains("Válido por 10 minutos"));
-        assertTrue(html.contains("Usa este código en OficioYa para activar tu cuenta:"));
-        assertTrue(html.contains("prefers-color-scheme: dark"));
+        assertEquals(recovery, activation);
+        assertTrue(activation.contains("Restablece tu contraseña"));
+        assertTrue(activation.contains("849201"));
+        assertTrue(activation.contains("Válido por 10 minutos"));
+        assertTrue(activation.contains("Usa este código en OficioYa para continuar:"));
+        assertTrue(activation.contains("prefers-color-scheme: dark"));
     }
 }
