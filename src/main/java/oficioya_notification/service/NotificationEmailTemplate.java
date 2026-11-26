@@ -117,22 +117,12 @@ public class NotificationEmailTemplate {
 
     /** Correo de recuperación de acceso con el OTP destacado y enlace al front. */
     public String passwordResetHtml(String body) {
-        String code = firstMatch("(\\d{4,8})", body, "------");
-        String minutes = firstMatch("(\\d+)\\s*minutos", body, null);
-        String validity = minutes == null
-                ? "Este código tiene una vigencia limitada."
-                : "Válido por " + minutes + " minutos.";
-
-        String content = recoveryCard("Recuperación de acceso", "Restablece tu contraseña",
+        return verificationCodeHtml(
+                "Recuperación de acceso", "Restablece tu contraseña",
                 "Usa este código en OficioYa para continuar:",
-                "<div class=\"oficioya-primary-soft\" style=\"margin-top:16px;padding:14px 8px;background:"
-                        + COLOR_PRIMARY_SOFT + ";border-radius:14px;text-align:center;font-size:30px;"
-                        + "font-weight:750;letter-spacing:8px;color:" + COLOR_PRIMARY + ";\">"
-                        + escape(code) + "</div>"
-                        + "<div class=\"oficioya-muted\" style=\"margin-top:8px;text-align:center;font-size:12px;"
-                        + "color:" + COLOR_MUTED + ";\">" + escape(validity) + "</div>",
-                "Si no solicitaste este cambio, puedes ignorar este correo.");
-        return htmlShell(content, "Recuperación de acceso", "Te ayudamos a recuperar el acceso a tu cuenta.");
+                "Si no solicitaste este cambio, puedes ignorar este correo.",
+                "Recuperación de acceso", "Te ayudamos a recuperar el acceso a tu cuenta.",
+                body);
     }
 
     /** Aviso de contraseña cambiada con enlace al front para iniciar sesión. */
@@ -143,23 +133,35 @@ public class NotificationEmailTemplate {
         return htmlShell(content, "Seguridad de tu cuenta", "Un cambio en tu cuenta OficioYa.");
     }
 
-    /** Correo de activación con el código de verificación y su vigencia. */
+    /** Correo de activación con el mismo diseño del código de verificación de contraseña. */
     public String registrationCodeHtml(String body) {
+        return verificationCodeHtml(
+                "Activación de cuenta", "Código de activación",
+                "Usa este código en OficioYa para activar tu cuenta:",
+                "Si no solicitaste esta activación, puedes ignorar este correo.",
+                "Activación de cuenta", "Activa tu cuenta OficioYa.",
+                body);
+    }
+
+    /** Tarjeta de código compartida: cambio de contraseña y activación usan exactamente el mismo diseño. */
+    private String verificationCodeHtml(String label, String title, String message,
+                                        String note, String shellLabel, String shellSubtitle,
+                                        String body) {
         String code = firstMatch("(\\d{4,8})", body, "------");
         String minutes = firstMatch("(\\d+)\\s*minutos", body, null);
         String validity = minutes == null
                 ? "Este código tiene una vigencia limitada."
                 : "Válido por " + minutes + " minutos.";
-        String content = recoveryCard("Activación de cuenta", "Código de activación",
-                "Usa este código en OficioYa para activar tu cuenta:",
+
+        String content = recoveryCard(label, title, message,
                 "<div class=\"oficioya-primary-soft\" style=\"margin-top:16px;padding:14px 8px;background:"
                         + COLOR_PRIMARY_SOFT + ";border-radius:14px;text-align:center;font-size:30px;"
                         + "font-weight:750;letter-spacing:8px;color:" + COLOR_PRIMARY + ";\">"
                         + escape(code) + "</div>"
                         + "<div class=\"oficioya-muted\" style=\"margin-top:8px;text-align:center;font-size:12px;"
                         + "color:" + COLOR_MUTED + ";\">" + escape(validity) + "</div>",
-                "Si no solicitaste esta activación, puedes ignorar este correo.");
-        return htmlShell(content, "Activación de cuenta", "Activa tu cuenta OficioYa.");
+                note);
+        return htmlShell(content, shellLabel, shellSubtitle);
     }
 
     private String recoveryCard(String label, String title, String message,
