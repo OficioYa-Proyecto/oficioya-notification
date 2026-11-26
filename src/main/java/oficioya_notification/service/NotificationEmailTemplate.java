@@ -277,13 +277,19 @@ public class NotificationEmailTemplate {
                 valueOr(request.description(), ""));
         String requestId = String.valueOf(notification != null && notification.getRequestId() != null
                 ? notification.getRequestId() : request.requestId());
+        NotificationType type = typeOf(request, notification);
+
+        String cta = type == NotificationType.COMPLETED_WORK
+                ? "\nCalifica el servicio en OficioYa: " + ratingUrl(requestId) + "\n"
+                : "";
 
         return "OficioYa\n"
                 + copy[0] + "\n\n"
                 + copy[1] + "\n"
                 + (description.isBlank() ? "" : description + "\n")
-                + "\nID de solicitud: " + requestId + "\n\n"
-                + "OficioYa";
+                + "\nID de solicitud: " + requestId + "\n"
+                + cta
+                + "\nOficioYa";
     }
 
     /** Tarjeta HTML de los cambios de estado, con la misma paleta que las demás. */
@@ -294,13 +300,12 @@ public class NotificationEmailTemplate {
         NotificationType type = typeOf(request, notification);
         String requestId = String.valueOf(notification != null && notification.getRequestId() != null
                 ? notification.getRequestId() : request.requestId());
-        String ratingUrl = frontUrl.replaceAll("/+$", "") + "/solicitudes?calificar=" + requestId;
-
         String ratingButton = type == NotificationType.COMPLETED_WORK
-                ? "<div style=\"margin-top:14px;\">"
-                + "<a href=\"" + escape(ratingUrl) + "\" style=\"display:inline-block;padding:10px 16px;"
-                + "background:" + COLOR_PRIMARY + ";color:#ffffff;text-decoration:none;border-radius:10px;"
-                + "font-weight:700;font-size:13px;\">Calificar el servicio</a></div>"
+                ? "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
+                + "style=\"margin-top:16px;border-top:1px solid " + COLOR_BORDER + ";\">"
+                + "<tr><td class=\"oficioya-action-cell\" align=\"center\" style=\"padding:14px 4px;\">"
+                + actionButton(ratingUrl(requestId), "Calificar el servicio", true)
+                + "</td></tr></table>"
                 : "";
 
         return htmlShell(
@@ -519,6 +524,11 @@ public class NotificationEmailTemplate {
                 + "box-sizing:border-box;min-width:0;padding:10px 8px;border-radius:10px;"
                 + "text-decoration:none;font-size:12px;line-height:16px;text-align:center;font-weight:700;"
                 + style + "\">" + escape(label) + "</a>";
+    }
+
+    /** Enlace al front para calificar el servicio cumplido (válido para ambos roles). */
+    private String ratingUrl(String requestId) {
+        return frontUrl.replaceAll("/+$", "") + "/solicitudes?calificar=" + requestId;
     }
 
     /** Sólo se aceptan enlaces http(s); nunca un esquema javascript: o similar. */
