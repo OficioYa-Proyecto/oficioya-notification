@@ -1,7 +1,6 @@
 package oficioya_notification.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
@@ -348,14 +347,17 @@ class NotificationEmailTemplateTest {
     }
 
     @Test
-    void codigoDeActivacionUsaElFormatoSimpleOriginal() {
-        String html = template.registrationCodeHtml(
+    void codigoDeActivacionUsaElMismoCuerpoQueRecuperacion() {
+        String activation = template.registrationCodeHtml(
+                "Tu código de activación para OficioYa es: 849201 (válido por 10 minutos).");
+        String recovery = template.passwordResetHtml(
                 "Tu código de activación para OficioYa es: 849201 (válido por 10 minutos).");
 
-        assertTrue(html.contains("background:#fffcf7;font-family:Arial,Helvetica,sans-serif"));
-        assertTrue(html.contains("Tu código de activación para OficioYa es: 849201 (válido por 10 minutos)."));
-        assertTrue(html.contains("cid:oficioya-logo"));
-        assertFalse(html.contains("Restablece tu contraseña"));
-        assertFalse(html.contains("prefers-color-scheme: dark"));
+        assertEquals(recovery, activation);
+        assertTrue(activation.contains("Restablece tu contraseña"));
+        assertTrue(activation.contains("849201"));
+        assertTrue(activation.contains("Válido por 10 minutos"));
+        assertTrue(activation.contains("Usa este código en OficioYa para continuar:"));
+        assertTrue(activation.contains("prefers-color-scheme: dark"));
     }
 }
