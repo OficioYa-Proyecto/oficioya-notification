@@ -280,4 +280,16 @@ class NotificationEmailTemplateTest {
         assertTrue(!html.contains("filter:invert"));
         assertTrue(!html.contains("invert(1)"));
     }
+
+    @Test
+    void codigoDeActivacionSeRenderizaConCodigoYValido() {
+        String html = template.registrationCodeHtml(
+                "Tu código de activación para OficioYa es: 849201 (válido por 10 minutos).");
+
+        assertTrue(html.contains("Código de activación"));
+        assertTrue(html.contains("849201"));
+        assertTrue(html.contains("Válido por 10 minutos"));
+        assertTrue(html.contains("Usa este código en OficioYa para activar tu cuenta:"));
+        assertTrue(html.contains("prefers-color-scheme: dark"));
+    }
 }

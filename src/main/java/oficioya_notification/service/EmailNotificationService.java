@@ -187,6 +187,9 @@ public class EmailNotificationService {
         if ("PASSWORD_CHANGED".equals(type)) {
             return recoveryTemplate.passwordChangedHtml(request.body());
         }
+        if ("REGISTRATION_CODE".equals(type)) {
+            return recoveryTemplate.registrationCodeHtml(request.body());
+        }
         return htmlFromText(request.body());
     }
 
