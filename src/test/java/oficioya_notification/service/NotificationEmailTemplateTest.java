@@ -183,6 +183,28 @@ class NotificationEmailTemplateTest {
     }
 
     @Test
+    void completarTrabajoIncluyeBotonParaCalificar() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), null, null, "msg",
+                NotificationType.COMPLETED_WORK, requestId, null, null, "destino@correo.com");
+        Notification notification = new Notification();
+        notification.setState(NotificationType.COMPLETED_WORK);
+        notification.setRequestId(requestId);
+        notification.setDescription("El trabajador marcó el servicio como terminado.");
+
+        String plain = template.statusPlain(request, notification);
+        String html = template.statusHtml(request, notification);
+
+        assertTrue(plain.contains("Califica el servicio en OficioYa"));
+        assertTrue(plain.contains("/solicitudes?calificar=" + requestId));
+        assertTrue(html.contains("Calificar el servicio"));
+        assertTrue(html.contains("/solicitudes?calificar=" + requestId));
+        assertTrue(html.contains("role=\"button\""));
+        assertTrue(html.contains("prefers-color-scheme: dark"));
+    }
+
+    @Test
     void plantillasUsanValoresPorDefectoCuandoFaltanDatos() {
         NotificationRequest request = new NotificationRequest(
                 UUID.randomUUID(), null, null, null,
