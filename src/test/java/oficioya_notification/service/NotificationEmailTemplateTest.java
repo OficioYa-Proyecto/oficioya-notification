@@ -161,7 +161,8 @@ class NotificationEmailTemplateTest {
                 NotificationType.CANCELLED_BY_CONTRACTOR,
                 NotificationType.CANCELLED_BY_WORKER,
                 NotificationType.COMPLETED_WORK,
-                NotificationType.REVIEW_REPORTED
+                NotificationType.REVIEW_REPORTED,
+                NotificationType.CONFLICT_REQUEST
         };
         String[] asuntos = {
                 "Tu solicitud en OficioYa fue aceptada",
@@ -169,7 +170,8 @@ class NotificationEmailTemplateTest {
                 "Una solicitud en OficioYa fue cancelada",
                 "Un trabajador canceló tu solicitud en OficioYa",
                 "El trabajo en OficioYa fue completado",
-                "Reporte de reseña en OficioYa"
+                "Reporte de reseña en OficioYa",
+                "Dos trabajadores aceptaron tu solicitud en OficioYa"
         };
 
         for (int i = 0; i < tipos.length; i++) {
@@ -301,6 +303,47 @@ class NotificationEmailTemplateTest {
         assertTrue(html.contains(".oficioya-photo,.oficioya-logo,img{filter:none !important"));
         assertTrue(!html.contains("filter:invert"));
         assertTrue(!html.contains("invert(1)"));
+    }
+
+    @Test
+    void correoIncluyeLocalidadYBarrioPorSeparado() {
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), "Solicitud entrante", "Fuga de agua", "msg",
+                NotificationType.INCOMING_REQUEST, UUID.randomUUID(), null, null, "trabajador@correo.com",
+                LocalDateTime.of(2026, 3, 2, 10, 30), "Medellín", "Laureles", "Cra. 74 # 39-25", null,
+                null, null, null, null, null, null);
+        Notification notification = new Notification();
+        notification.setRequestId(request.requestId());
+
+        String html = template.workerHtml(request, notification);
+        String plain = template.plainText(request, notification);
+
+        assertTrue(html.contains("Medellín · Laureles"));
+        assertTrue(plain.contains("Ubicación: Medellín · Laureles - Cra. 74 # 39-25"));
+    }
+
+    @Test
+    void conflictoIncluyeBotonParaElegirTrabajadorConRootId() {
+        UUID rootId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), "Dos trabajadores aceptaron tu solicitud. Elige cuál continúa.",
+                NotificationType.CONFLICT_REQUEST, requestId, "contratante@correo.com", rootId);
+        Notification notification = new Notification();
+        notification.setState(NotificationType.CONFLICT_REQUEST);
+        notification.setRequestId(requestId);
+
+        assertEquals("Dos trabajadores aceptaron tu solicitud en OficioYa",
+                template.statusSubject(request, notification));
+        String plain = template.statusPlain(request, notification);
+        assertTrue(plain.contains("Conflicto por resolver"));
+        assertTrue(plain.contains("/solicitudes?conflict=" + rootId));
+
+        String html = template.statusHtml(request, notification);
+        assertTrue(html.contains(">Elegir trabajador</a>"));
+        assertTrue(html.contains("href=\"https://oficioya-front-app-egh6gjc3b0aearhq.chilecentral-01.azurewebsites.net"
+                + "/solicitudes?conflict=" + rootId + "\""));
+        assertTrue(html.contains("Conflicto por resolver"));
     }
 
     @Test

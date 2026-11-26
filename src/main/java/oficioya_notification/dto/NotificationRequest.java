@@ -11,11 +11,17 @@ import oficioya_notification.model.NotificationType;
  * Los campos de la solicitud son opcionales para mantener compatibilidad con
  * productores que todavía no envían el contexto completo.
  *
+ * locality es la localidad elegida en el formulario; neighborhood es el barrio
+ * escrito por el contratante. Ambos viajan por separado en el correo.
+ *
  * acceptUrl y rejectUrl son enlaces firmados generados por Service: al pulsarlos
  * se ejecuta la acción directamente y se redirige al front.
  *
  * photoBase64s/photoContentTypes alimentan el carrusel del correo; imageBase64
  * se conserva para productores que todavía envían una sola foto.
+ *
+ * rootId identifica la publicación cuando dos trabajadores la aceptan: el correo
+ * de conflicto lleva al contratante a /solicitudes?conflict=<rootId>.
  */
 public record NotificationRequest (
     UUID receiverId,
@@ -28,6 +34,7 @@ public record NotificationRequest (
     String deviceToken,
     String receiverEmail,
     LocalDateTime scheduledDateTime,
+    String locality,
     String neighborhood,
     String exactAddress,
     String imageUrl,
@@ -36,20 +43,21 @@ public record NotificationRequest (
     String imageBase64,
     String imageContentType,
     List<String> photoBase64s,
-    List<String> photoContentTypes
+    List<String> photoContentTypes,
+    UUID rootId
     ){
 
     public NotificationRequest(UUID receiverId, String title, String description, String message,
                                NotificationType type, UUID requestId, LocalDateTime dateCreated, String deviceToken) {
         this(receiverId, title, description, message, type, requestId, dateCreated, deviceToken,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     public NotificationRequest(UUID receiverId, String title, String description, String message,
                                NotificationType type, UUID requestId, LocalDateTime dateCreated, String deviceToken,
                                String receiverEmail) {
         this(receiverId, title, description, message, type, requestId, dateCreated, deviceToken,
-                receiverEmail, null, null, null, null, null, null, null, null, null, null);
+                receiverEmail, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     public NotificationRequest(UUID receiverId, String title, String description, String message,
@@ -57,8 +65,8 @@ public record NotificationRequest (
                                String receiverEmail, LocalDateTime scheduledDateTime, String neighborhood,
                                String exactAddress, String imageUrl) {
         this(receiverId, title, description, message, type, requestId, dateCreated, deviceToken,
-                receiverEmail, scheduledDateTime, neighborhood, exactAddress, imageUrl, null, null,
-                null, null, null, null);
+                receiverEmail, scheduledDateTime, null, neighborhood, exactAddress, imageUrl,
+                null, null, null, null, null, null, null);
     }
 
     public NotificationRequest(UUID receiverId, String title, String description, String message,
@@ -66,7 +74,38 @@ public record NotificationRequest (
                                String receiverEmail, LocalDateTime scheduledDateTime, String neighborhood,
                                String exactAddress, String imageUrl, String acceptUrl, String rejectUrl) {
         this(receiverId, title, description, message, type, requestId, dateCreated, deviceToken,
-                receiverEmail, scheduledDateTime, neighborhood, exactAddress, imageUrl, acceptUrl, rejectUrl,
-                null, null, null, null);
+                receiverEmail, scheduledDateTime, null, neighborhood, exactAddress, imageUrl,
+                acceptUrl, rejectUrl, null, null, null, null, null);
+    }
+
+    /** Constructor anterior, sin localidad, para productores que todavía no la envían. */
+    public NotificationRequest(UUID receiverId, String title, String description, String message,
+                               NotificationType type, UUID requestId, LocalDateTime dateCreated, String deviceToken,
+                               String receiverEmail, LocalDateTime scheduledDateTime, String neighborhood,
+                               String exactAddress, String imageUrl, String acceptUrl, String rejectUrl,
+                               String imageBase64, String imageContentType,
+                               List<String> photoBase64s, List<String> photoContentTypes) {
+        this(receiverId, title, description, message, type, requestId, dateCreated, deviceToken,
+                receiverEmail, scheduledDateTime, null, neighborhood, exactAddress, imageUrl,
+                acceptUrl, rejectUrl, imageBase64, imageContentType, photoBase64s, photoContentTypes, null);
+    }
+
+    /** Constructor anterior con localidad, sin rootId, para productores existentes. */
+    public NotificationRequest(UUID receiverId, String title, String description, String message,
+                               NotificationType type, UUID requestId, LocalDateTime dateCreated, String deviceToken,
+                               String receiverEmail, LocalDateTime scheduledDateTime, String locality,
+                               String neighborhood, String exactAddress, String imageUrl, String acceptUrl,
+                               String rejectUrl, String imageBase64, String imageContentType,
+                               List<String> photoBase64s, List<String> photoContentTypes) {
+        this(receiverId, title, description, message, type, requestId, dateCreated, deviceToken,
+                receiverEmail, scheduledDateTime, locality, neighborhood, exactAddress, imageUrl,
+                acceptUrl, rejectUrl, imageBase64, imageContentType, photoBase64s, photoContentTypes, null);
+    }
+
+    /** Atajo para el aviso de disputa: el contratante necesita el rootId para elegir. */
+    public NotificationRequest(UUID receiverId, String message, NotificationType type, UUID requestId,
+                               String receiverEmail, UUID rootId) {
+        this(receiverId, null, null, message, type, requestId, null, null, receiverEmail,
+                null, null, null, null, null, null, null, null, null, null, null, rootId);
     }
 }
