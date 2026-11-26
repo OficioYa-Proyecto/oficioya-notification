@@ -347,6 +347,61 @@ class NotificationEmailTemplateTest {
     }
 
     @Test
+    void aceptacionIncluyeLosDetallesYFotosDelCorreoDeEntrada() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), null, null, "Tu solicitud fue aceptada",
+                NotificationType.ACCEPTED_REQUEST, requestId, null, null, "contratante@correo.com",
+                LocalDateTime.of(2026, 3, 2, 10, 30), "Medellín", "Laureles", "Cra. 74 # 39-25",
+                null, null, null, null, null,
+                List.of("YQ=="), List.of("image/jpeg"));
+        Notification notification = new Notification();
+        notification.setState(NotificationType.ACCEPTED_REQUEST);
+        notification.setRequestId(requestId);
+        notification.setDescription("Reparar fuga en Laureles");
+
+        String html = template.statusHtml(request, notification);
+        String plain = template.statusPlain(request, notification);
+
+        assertTrue(html.contains("2 de marzo"));
+        assertTrue(html.contains("10:30"));
+        assertTrue(html.contains("Medellín · Laureles"));
+        assertTrue(html.contains("Cra. 74 # 39-25"));
+        assertTrue(html.contains("cid:request-photo-1"));
+        assertTrue(plain.contains("Fecha:"));
+        assertTrue(plain.contains("Hora:"));
+        assertTrue(plain.contains("Ubicación: Medellín · Laureles - Cra. 74 # 39-25"));
+        assertEquals("Tu solicitud en OficioYa fue aceptada",
+                template.statusSubject(request, notification));
+    }
+
+    @Test
+    void cancelacionIncluyeLosDetallesDeLaSolicitud() {
+        UUID requestId = UUID.randomUUID();
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), null, null, "Una solicitud fue cancelada",
+                NotificationType.CANCELLED_BY_WORKER, requestId, null, null, "contratante@correo.com",
+                LocalDateTime.of(2026, 3, 2, 10, 30), "Medellín", "Laureles", "Cra. 74 # 39-25",
+                null, null, null, null, null, null, null);
+        Notification notification = new Notification();
+        notification.setState(NotificationType.CANCELLED_BY_WORKER);
+        notification.setRequestId(requestId);
+        notification.setDescription("Reparar fuga en Laureles");
+
+        String html = template.statusHtml(request, notification);
+        String plain = template.statusPlain(request, notification);
+
+        assertTrue(html.contains("Solicitud cancelada por el trabajador"));
+        assertTrue(html.contains("2 de marzo"));
+        assertTrue(html.contains("10:30"));
+        assertTrue(html.contains("Medellín · Laureles"));
+        assertTrue(html.contains("Cra. 74 # 39-25"));
+        assertTrue(plain.contains("Ubicación: Medellín · Laureles - Cra. 74 # 39-25"));
+        assertEquals("Un trabajador canceló tu solicitud en OficioYa",
+                template.statusSubject(request, notification));
+    }
+
+    @Test
     void codigoDeActivacionUsaElMismoCuerpoQueRecuperacion() {
         String activation = template.registrationCodeHtml(
                 "Tu código de activación para OficioYa es: 849201 (válido por 10 minutos).");

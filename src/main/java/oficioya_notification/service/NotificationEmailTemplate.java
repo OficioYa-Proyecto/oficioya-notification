@@ -305,6 +305,7 @@ public class NotificationEmailTemplate {
                 + copy[0] + "\n\n"
                 + copy[1] + "\n"
                 + (description.isBlank() ? "" : description + "\n")
+                + statusDetailsPlain(request)
                 + "\nID de solicitud: " + requestId + "\n"
                 + cta
                 + (type == NotificationType.CONFLICT_REQUEST
@@ -355,12 +356,54 @@ public class NotificationEmailTemplate {
                 + "</td></tr></table>"
                 + "<div class=\"oficioya-text\" style=\"margin-top:12px;font-size:12px;color:" + COLOR_TEXT + ";line-height:18px;\">"
                 + escape(description) + "</div>"
+                + statusDetailsHtml(request)
                 + "<div class=\"oficioya-accent\" style=\"font-size:10px;color:" + COLOR_ACCENT + ";margin-top:10px;\">Referencia "
                 + escape(requestId) + "</div>"
                 + ratingButton
                 + conflictButton
                 + "</div>"
                 + "</td></tr>", notificationLabel(type));
+    }
+
+    /** Detalles de la solicitud que el correo de entrada ya mostraba al trabajador. */
+    private boolean hasStatusDetails(NotificationRequest request) {
+        return request != null && (request.scheduledDateTime() != null
+                || hasText(request.neighborhood()) || hasText(request.exactAddress()));
+    }
+
+    private String statusDetailsPlain(NotificationRequest request) {
+        if (!hasStatusDetails(request)) {
+            return "";
+        }
+        return "\nFecha: " + formatDate(request.scheduledDateTime())
+                + "\nHora: " + formatTime(request.scheduledDateTime())
+                + "\nUbicación: " + locationLabel(request) + " - "
+                + valueOr(request.exactAddress(), "Cra. 74 # 39-25") + "\n";
+    }
+
+    private String statusDetailsHtml(NotificationRequest request) {
+        String details = hasStatusDetails(request)
+                ? detailGrid(formatDate(request.scheduledDateTime()), formatTime(request.scheduledDateTime()),
+                        locationLabel(request), valueOr(request.exactAddress(), "Cra. 74 # 39-25"))
+                : "";
+        return details + statusPhotoHtml(request);
+    }
+
+    private String statusPhotoHtml(NotificationRequest request) {
+        if (request == null) {
+            return "";
+        }
+        if (hasRequestPhotos(request)) {
+            return carouselHtml(request);
+        }
+        if (hasText(request.imageBase64()) || hasText(request.imageUrl())) {
+            return legacyPhotoHtml(request);
+        }
+        return "";
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private NotificationType typeOf(NotificationRequest request, Notification notification) {
