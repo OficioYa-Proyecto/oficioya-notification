@@ -133,9 +133,19 @@ public class NotificationEmailTemplate {
         return htmlShell(content, "Seguridad de tu cuenta", "Un cambio en tu cuenta OficioYa.");
     }
 
-    /** Correo de activación con el mismo cuerpo que el código de verificación de contraseña. */
+    /**
+     * Correo de activación: mismo formato simple del código enviado antes de integrar
+     * la plantilla de recuperación (logo sobre fondo claro y el código en el cuerpo).
+     */
     public String registrationCodeHtml(String body) {
-        return passwordResetHtml(body);
+        String message = escape(body.trim());
+        return "<div style=\"margin:0;padding:24px;background:#fffcf7;font-family:Arial,Helvetica,sans-serif;color:#24312d\">"
+                + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>"
+                + "<td bgcolor=\"#ffffff\" style=\"background:#ffffff!important;border-radius:8px;padding:4px\">"
+                + "<img src=\"" + LOGO_CID + "\" alt=\"OficioYa\" width=\"92\" height=\"32\" "
+                + "style=\"display:block;width:92px;height:32px;object-fit:contain;border-radius:6px\">"
+                + "</td></tr></table>"
+                + "<div style=\"margin-top:16px;font-size:14px;line-height:22px\">" + message + "</div></div>";
     }
 
     /** Tarjeta de código compartida: cambio de contraseña y activación usan exactamente el mismo diseño. */

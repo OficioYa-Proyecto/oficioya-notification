@@ -1,6 +1,7 @@
 package oficioya_notification.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -319,12 +320,10 @@ class EmailNotificationServiceTest {
         ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(sender).send(captor.capture());
         String html = htmlOf(captor.getValue());
-        assertTrue(html.contains("Restablece tu contraseña"));
-        assertTrue(html.contains("849201"));
-        assertTrue(html.contains("Válido por 10 minutos"));
-        assertTrue(html.contains("Usa este código en OficioYa para continuar:"));
-        assertTrue(html.contains("prefers-color-scheme: dark"));
-        assertTrue(html.contains("background:#ffffff !important"));
-        assertTrue(html.contains("filter:none !important"));
+        assertTrue(html.contains("background:#fffcf7;font-family:Arial,Helvetica,sans-serif"));
+        assertTrue(html.contains("Tu código de activación para OficioYa es: 849201 (válido por 10 minutos)."));
+        assertTrue(html.contains("cid:oficioya-logo"));
+        assertFalse(html.contains("prefers-color-scheme: dark"));
+        assertTrue(html.contains("background:#ffffff!important"));
     }
 }
