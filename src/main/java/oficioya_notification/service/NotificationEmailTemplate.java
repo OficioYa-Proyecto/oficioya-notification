@@ -50,7 +50,7 @@ public class NotificationEmailTemplate {
     public String workerHtml(NotificationRequest request, Notification notification) {
         String dateValue = formatDate(request.scheduledDateTime());
         String timeValue = formatTime(request.scheduledDateTime());
-        String neighborhood = valueOr(request.neighborhood(), "Laureles");
+        String location = locationLabel(request);
         String address = valueOr(request.exactAddress(), "Cra. 74 # 39-25");
         String photoBlock = hasRequestPhotos(request)
                 ? carouselHtml(request)
@@ -75,7 +75,7 @@ public class NotificationEmailTemplate {
                 + "<div class=\"oficioya-muted\" style=\"margin-top:12px;font-size:12px;color:" + COLOR_MUTED + ";line-height:18px;\">"
                 + escape(description) + "</div>"
                 + photoBlock
-                + detailGrid(dateValue, timeValue, neighborhood, address)
+                + detailGrid(dateValue, timeValue, location, address)
                 + actionRow(request.acceptUrl(), request.rejectUrl())
                 + "<div style=\"height:3px;background:" + COLOR_PRIMARY_SOFT + ";border-radius:3px;margin-top:14px;overflow:hidden;\">"
                 + "<div style=\"height:3px;width:100%;background:" + COLOR_PRIMARY
@@ -176,7 +176,7 @@ public class NotificationEmailTemplate {
     public String plainText(NotificationRequest request, Notification notification) {
         String dateValue = formatDate(request.scheduledDateTime());
         String timeValue = formatTime(request.scheduledDateTime());
-        String neighborhood = valueOr(request.neighborhood(), "Laureles");
+        String location = locationLabel(request);
         String address = valueOr(request.exactAddress(), "Cra. 74 # 39-25");
         String description = valueOr(notification.getDescription(),
                 valueOr(request.description(), "Nueva reparación cerca de ti"));
@@ -186,7 +186,7 @@ public class NotificationEmailTemplate {
                 + description + "\n\n"
                 + "Fecha: " + dateValue + "\n"
                 + "Hora: " + timeValue + "\n"
-                + "Ubicación: " + neighborhood + " - " + address + "\n\n"
+                + "Ubicación: " + location + " - " + address + "\n\n"
                 + "ID de solicitud: " + notification.getRequestId() + "\n";
     }
 
@@ -460,7 +460,7 @@ public class NotificationEmailTemplate {
                 + "</tr></table>";
     }
 
-    private String detailGrid(String dateValue, String timeValue, String neighborhood, String address) {
+    private String detailGrid(String dateValue, String timeValue, String location, String address) {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:14px;\">"
                 + "<tr>"
                 + "<td width=\"50%\" class=\"oficioya-border\" style=\"padding:8px 6px;border:1px solid " + COLOR_BORDER
@@ -477,7 +477,7 @@ public class NotificationEmailTemplate {
                 + "<tr><td colspan=\"2\" class=\"oficioya-border\" style=\"padding:8px 6px;border:1px solid " + COLOR_BORDER
                 + ";border-radius:12px;margin-top:8px;\">"
                 + "<div class=\"oficioya-primary\" style=\"font-size:11px;color:" + COLOR_PRIMARY + ";\">" + icon("pin") + " "
-                + escape(neighborhood) + "</div>"
+                + escape(location) + "</div>"
                 + "<div class=\"oficioya-muted\" style=\"font-size:10px;color:" + COLOR_MUTED + ";margin-top:2px;\">"
                 + escape(address) + " · a 1,2 km</div>"
                 + "</td></tr>"
@@ -544,6 +544,15 @@ public class NotificationEmailTemplate {
 
     private String valueOr(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private String locationLabel(NotificationRequest request) {
+        String locality = request.locality() == null ? "" : request.locality().trim();
+        String neighborhood = valueOr(request.neighborhood(), "Laureles");
+        if (locality.isEmpty() || locality.equals(neighborhood)) {
+            return neighborhood;
+        }
+        return locality + " · " + neighborhood;
     }
 
     private String icon(String name) {

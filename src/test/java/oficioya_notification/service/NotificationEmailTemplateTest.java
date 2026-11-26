@@ -280,4 +280,21 @@ class NotificationEmailTemplateTest {
         assertTrue(!html.contains("filter:invert"));
         assertTrue(!html.contains("invert(1)"));
     }
+
+    @Test
+    void correoIncluyeLocalidadYBarrioPorSeparado() {
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), "Solicitud entrante", "Fuga de agua", "msg",
+                NotificationType.INCOMING_REQUEST, UUID.randomUUID(), null, null, "trabajador@correo.com",
+                LocalDateTime.of(2026, 3, 2, 10, 30), "Medellín", "Laureles", "Cra. 74 # 39-25", null,
+                null, null, null, null, null, null);
+        Notification notification = new Notification();
+        notification.setRequestId(request.requestId());
+
+        String html = template.workerHtml(request, notification);
+        String plain = template.plainText(request, notification);
+
+        assertTrue(html.contains("Medellín · Laureles"));
+        assertTrue(plain.contains("Ubicación: Medellín · Laureles - Cra. 74 # 39-25"));
+    }
 }
