@@ -72,13 +72,13 @@ public class EmailNotificationService {
         }
     }
 
-    /** Variante con varias fotos incrustadas (CID request-photo-1, -2, ...) para el carrusel. */
+    /** Variante con fotos incrustadas (CID request-photo-1, -2, ...). */
     public String sendHtmlEmailWithPhotos(EmailRequest request, String html,
                                           List<String> photoBase64s, List<String> photoContentTypes) {
         validateRecipient(request.to(), true);
         try {
             deliverHtmlWithPhotos(request, html, photoBase64s, photoContentTypes);
-            log.info("Correo HTML con carrusel enviado a {} (tipo: {})", request.to(), request.type());
+            log.info("Correo HTML con foto enviado a {} (tipo: {})", request.to(), request.type());
             return "Recibido: correo enviado a " + request.to();
         } catch (Exception e) {
             reportFailure(request, "SMTP", e);

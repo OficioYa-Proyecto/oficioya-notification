@@ -75,16 +75,16 @@ public class NotificationService {
             throw new EmailDeliveryException(
                     "Correo del destinatario vacío; no se envió el correo. Revise la resolución de correos en Service.");
         }
-        boolean hasCarousel = request.photoBase64s() != null && !request.photoBase64s().isEmpty();
+        boolean hasPhoto = !firstPhoto(request.photoBase64s()).isEmpty();
         if (request.type() == NotificationType.REQUEST_CREATED) {
             String subject = "Tu solicitud en OficioYa fue creada";
             String plain = "Solicitud enviada\nLos trabajadores disponibles ya fueron notificados.\n\n"
                     + "ID de solicitud: " + noti.getRequestId() + "\n\nOficioYa";
-            if (hasCarousel) {
+            if (hasPhoto) {
                 emailNotificationService.sendHtmlEmailWithPhotos(
                         new EmailRequest(email, subject, plain, "REQUEST_CREATED"),
                         emailTemplate.contractorHtml(request, noti),
-                        request.photoBase64s(), request.photoContentTypes());
+                        firstPhoto(request.photoBase64s()), firstContentType(request.photoContentTypes()));
             } else {
                 emailNotificationService.sendHtmlEmail(
                         new EmailRequest(email, subject, plain, "REQUEST_CREATED"),
@@ -96,9 +96,9 @@ public class NotificationService {
             String subject = "Solicitud entrante en OficioYa";
             EmailRequest mail = new EmailRequest(email, subject,
                     emailTemplate.plainText(request, noti), "INCOMING_REQUEST");
-            if (hasCarousel) {
+            if (hasPhoto) {
                 emailNotificationService.sendHtmlEmailWithPhotos(mail, emailTemplate.workerHtml(request, noti),
-                        request.photoBase64s(), request.photoContentTypes());
+                        firstPhoto(request.photoBase64s()), firstContentType(request.photoContentTypes()));
             } else {
                 emailNotificationService.sendHtmlEmail(mail, emailTemplate.workerHtml(request, noti),
                         request.imageBase64(), request.imageContentType());
@@ -110,15 +110,35 @@ public class NotificationService {
                 emailTemplate.statusPlain(request, noti),
                 String.valueOf(request.type()));
         String html = emailTemplate.statusHtml(request, noti);
-        if (hasCarousel) {
+        if (hasPhoto) {
             emailNotificationService.sendHtmlEmailWithPhotos(mail, html,
-                    request.photoBase64s(), request.photoContentTypes());
+                    firstPhoto(request.photoBase64s()), firstContentType(request.photoContentTypes()));
         } else if (request.imageBase64() != null && !request.imageBase64().isBlank()) {
             emailNotificationService.sendHtmlEmail(mail, html,
                     request.imageBase64(), request.imageContentType());
         } else {
             emailNotificationService.sendHtmlEmail(mail, html);
         }
+    }
+
+    /** Solo la primera foto se incrusta: el correo muestra una imagen, no un carrusel. */
+    private List<String> firstPhoto(List<String> photos) {
+        if (photos == null) {
+            return List.of();
+        }
+        for (String photo : photos) {
+            if (photo != null && !photo.isBlank()) {
+                return List.of(photo);
+            }
+        }
+        return List.of();
+    }
+
+    private List<String> firstContentType(List<String> contentTypes) {
+        if (contentTypes == null || contentTypes.isEmpty()) {
+            return List.of("image/jpeg");
+        }
+        return List.of(contentTypes.get(0));
     }
 
     public boolean deleteNotification(UUID requestId) {

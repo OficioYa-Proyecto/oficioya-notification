@@ -93,7 +93,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    void sendNotificationConFotosUsaElCarruselEnLosDosCorreos() {
+    void sendNotificationConVariasFotosAdjuntaSoloLaPrimera() {
         UUID requestId = UUID.randomUUID();
         List<String> photos = List.of("YQ==", "Yg==");
         NotificationRequest req = new NotificationRequest(
@@ -113,7 +113,7 @@ class NotificationServiceTest {
 
         verify(emailNotificationService).sendHtmlEmailWithPhotos(any(EmailRequest.class),
                 org.mockito.ArgumentMatchers.eq("<html>carrusel</html>"),
-                org.mockito.ArgumentMatchers.eq(photos), any());
+                org.mockito.ArgumentMatchers.eq(List.of("YQ==")), any());
     }
 
     @Test
@@ -198,7 +198,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    void sendNotificationEstadoConFotosAdjuntaElMismoCarruselQueElCorreoDeEntrada() {
+    void sendNotificationEstadoConFotosAdjuntaLaMismaUnicaFotoQueElCorreoDeEntrada() {
         UUID requestId = UUID.randomUUID();
         List<String> photos = List.of("YQ==");
         List<String> contentTypes = List.of("image/jpeg");

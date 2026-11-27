@@ -17,7 +17,7 @@ import oficioya_notification.model.NotificationType;
  * acceptUrl y rejectUrl son enlaces firmados generados por Service: al pulsarlos
  * se ejecuta la acción directamente y se redirige al front.
  *
- * photoBase64s/photoContentTypes alimentan el carrusel del correo; imageBase64
+ * photoBase64s/photoContentTypes alimentan la foto del correo; imageBase64
  * se conserva para productores que todavía envían una sola foto.
  *
  * rootId identifica la publicación cuando dos trabajadores la aceptan: el correo

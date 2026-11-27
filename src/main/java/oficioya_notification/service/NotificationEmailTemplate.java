@@ -2,8 +2,6 @@ package oficioya_notification.service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -53,9 +51,7 @@ public class NotificationEmailTemplate {
         String timeValue = formatTime(request.scheduledDateTime());
         String location = locationLabel(request);
         String address = valueOr(request.exactAddress(), "Cra. 74 # 39-25");
-        String photoBlock = hasRequestPhotos(request)
-                ? carouselHtml(request)
-                : legacyPhotoHtml(request);
+        String photoBlock = photoHtml(request, true);
         String description = valueOr(request.description(),
                 valueOr(notification.getDescription(), "Nueva reparación cerca de ti"));
 
@@ -110,7 +106,7 @@ public class NotificationEmailTemplate {
                 + "<div class=\"oficioya-accent\" style=\"font-size:10px;color:" + COLOR_ACCENT + ";margin-top:8px;\">Referencia "
                 + escape(requestId) + "</div>"
                 + "</td></tr></table>"
-                + carouselHtml(request)
+                + photoHtml(request, false)
                 + "</div>"
                 + "</td></tr>", "Solicitud enviada");
     }
@@ -207,53 +203,37 @@ public class NotificationEmailTemplate {
                 + "ID de solicitud: " + notification.getRequestId() + "\n";
     }
 
-    private boolean hasRequestPhotos(NotificationRequest request) {
-        return request != null && request.photoBase64s() != null && !request.photoBase64s().isEmpty();
-    }
-
-    private String legacyPhotoHtml(NotificationRequest request) {
-        String image = (request.imageBase64() != null && !request.imageBase64().isBlank())
-                ? "cid:request-photo"
-                : valueOr(request.imageUrl(), DEFAULT_IMAGE);
-        return "<img class=\"oficioya-photo\" src=\"" + escape(image) + "\" alt=\"Fotografía de la avería\" width=\"100%\" height=\"94\" "
+    /**
+     * Una sola foto por correo: se toma la primera del payload y se ignoran las demas.
+     * Asi ningun cliente de correo puede mostrar la misma imagen mas de una vez.
+     */
+    private String photoHtml(NotificationRequest request, boolean fallbackDefault) {
+        String image = firstPhotoSource(request);
+        if (image == null && request != null && request.imageBase64() != null
+                && !request.imageBase64().isBlank()) {
+            image = "cid:request-photo";
+        }
+        if (image == null && request != null && hasText(request.imageUrl())) {
+            image = request.imageUrl();
+        }
+        if (image == null && !fallbackDefault) {
+            return "";
+        }
+        return "<img class=\"oficioya-photo\" src=\"" + escape(valueOr(image, DEFAULT_IMAGE))
+                + "\" alt=\"Fotografía de la avería\" width=\"100%\" height=\"94\" "
                 + "style=\"display:block;width:100%;height:94px;object-fit:cover;border-radius:14px;margin-top:12px;\">";
     }
 
-    private List<String> requestPhotoSources(NotificationRequest request) {
-        List<String> sources = new ArrayList<>();
-        if (!hasRequestPhotos(request)) {
-            return sources;
+    private String firstPhotoSource(NotificationRequest request) {
+        if (request == null || request.photoBase64s() == null) {
+            return null;
         }
-        for (int i = 0; i < request.photoBase64s().size() && sources.size() < 5; i++) {
-            String encoded = request.photoBase64s().get(i);
+        for (String encoded : request.photoBase64s()) {
             if (encoded != null && !encoded.isBlank()) {
-                sources.add("cid:request-photo-" + (i + 1));
+                return "cid:request-photo-1";
             }
         }
-        return sources;
-    }
-
-    /**
-     * Carrusel sin JavaScript: las fotos se desplazan solas con CSS y cada una
-     * aparece una sola vez en el correo.
-     */
-    private String carouselHtml(NotificationRequest request) {
-        List<String> sources = requestPhotoSources(request);
-        if (sources.isEmpty()) {
-            return "";
-        }
-        StringBuilder html = new StringBuilder();
-        html.append("<div style=\"margin-top:12px;\">")
-                .append("<div class=\"oficioya-carousel-window\" style=\"height:94px;\">")
-                .append("<div class=\"oficioya-track oficioya-track-").append(Math.min(sources.size(), 5))
-                .append("\">");
-        for (String source : sources) {
-            html.append("<img class=\"oficioya-photo\" src=\"").append(escape(source))
-                    .append("\" alt=\"Foto del servicio\" width=\"100%\" height=\"94\" "
-                            + "style=\"display:block;width:100%;height:94px;object-fit:cover;\">");
-        }
-        html.append("</div></div></div>");
-        return html.toString();
+        return null;
     }
 
     /** Asunto de los cambios de estado: aceptar, rechazar, cancelar y completar. */
@@ -378,16 +358,7 @@ public class NotificationEmailTemplate {
     }
 
     private String statusPhotoHtml(NotificationRequest request) {
-        if (request == null) {
-            return "";
-        }
-        if (hasRequestPhotos(request)) {
-            return carouselHtml(request);
-        }
-        if (hasText(request.imageBase64()) || hasText(request.imageUrl())) {
-            return legacyPhotoHtml(request);
-        }
-        return "";
+        return photoHtml(request, false);
     }
 
     private boolean hasText(String value) {
@@ -472,17 +443,6 @@ public class NotificationEmailTemplate {
                 + "@keyframes notification-in{from{opacity:0;transform:translateY(-18px) scale(.94);}"
                 + "to{opacity:1;transform:translateY(0) scale(1);}}"
                 + "@keyframes presence{from{transform:scaleX(1);}to{transform:scaleX(0);}}"
-                + "@keyframes oficioya-slide-2{0%,38%{transform:translateX(0)}50%,88%{transform:translateX(-100%)}100%{transform:translateX(0)}}"
-                + "@keyframes oficioya-slide-3{0%,25%{transform:translateX(0)}33%,58%{transform:translateX(-100%)}66%,91%{transform:translateX(-200%)}100%{transform:translateX(0)}}"
-                + "@keyframes oficioya-slide-4{0%,19%{transform:translateX(0)}25%,44%{transform:translateX(-100%)}50%,69%{transform:translateX(-200%)}75%,94%{transform:translateX(-300%)}100%{transform:translateX(0)}}"
-                + "@keyframes oficioya-slide-5{0%,15%{transform:translateX(0)}20%,35%{transform:translateX(-100%)}40%,55%{transform:translateX(-200%)}60%,75%{transform:translateX(-300%)}80%,95%{transform:translateX(-400%)}100%{transform:translateX(0)}}"
-                + ".oficioya-carousel-window{width:100%;overflow:hidden;border-radius:14px;}"
-                + ".oficioya-track{display:flex;width:100%;}"
-                + ".oficioya-track img{flex:0 0 100%;width:100%;height:94px;object-fit:cover;display:block;}"
-                + ".oficioya-track-2{animation:oficioya-slide-2 12s ease-in-out infinite;}"
-                + ".oficioya-track-3{animation:oficioya-slide-3 15s ease-in-out infinite;}"
-                + ".oficioya-track-4{animation:oficioya-slide-4 18s ease-in-out infinite;}"
-                + ".oficioya-track-5{animation:oficioya-slide-5 21s ease-in-out infinite;}"
                 + "@media (prefers-color-scheme: dark){"
                 + ".oficioya-bg{background:#121a17 !important;}"
                 + ".oficioya-surface{background:#1d2824 !important;border-color:#34443e !important;}"

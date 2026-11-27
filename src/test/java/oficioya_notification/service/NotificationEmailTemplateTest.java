@@ -57,7 +57,7 @@ class NotificationEmailTemplateTest {
     }
 
     @Test
-    void carruselDeFotosApareceEnCorreoDelTrabajadorYDelContratante() {
+    void correosMuestranUnaSolaFotoAunqueLleguenVarias() {
         NotificationRequest request = new NotificationRequest(
                 UUID.randomUUID(), "Solicitud entrante", "Fuga de agua", "msg",
                 NotificationType.INCOMING_REQUEST, UUID.randomUUID(), null, null, "trabajador@correo.com",
@@ -68,23 +68,19 @@ class NotificationEmailTemplateTest {
         notification.setDescription("Fuga de agua");
         notification.setRequestId(request.requestId());
 
-        String worker = template.workerHtml(request, notification);
-
-        assertTrue(worker.contains("oficioya-track-3"));
-        assertTrue(worker.contains("@keyframes oficioya-slide-3"));
-        assertTrue(worker.contains("cid:request-photo-1"));
-        assertTrue(worker.contains("cid:request-photo-3"));
-        assertTrue(!worker.contains("Miniatura del servicio"));
-        assertTrue(!worker.contains("photo-1581244277943"));
-        assertEquals(1, worker.split("cid:request-photo-1", -1).length - 1);
-        assertEquals(1, worker.split("cid:request-photo-2", -1).length - 1);
-        assertEquals(1, worker.split("cid:request-photo-3", -1).length - 1);
-
-        String contractor = template.contractorHtml(request, notification);
-
-        assertTrue(contractor.contains("oficioya-track-3"));
-        assertTrue(contractor.contains("cid:request-photo-2"));
-        assertEquals(1, contractor.split("cid:request-photo-2", -1).length - 1);
+        for (String html : List.of(template.workerHtml(request, notification),
+                template.contractorHtml(request, notification),
+                template.statusHtml(request, notification))) {
+            assertTrue(html.contains("cid:request-photo-1"));
+            assertEquals(1, html.split("cid:request-photo-1", -1).length - 1);
+            assertEquals(1, html.split("<img class=\"oficioya-photo\"", -1).length - 1);
+            assertTrue(!html.contains("cid:request-photo-2"));
+            assertTrue(!html.contains("cid:request-photo-3"));
+            assertTrue(!html.contains("oficioya-track"));
+            assertTrue(!html.contains("@keyframes oficioya-slide"));
+            assertTrue(!html.contains("Miniatura del servicio"));
+            assertTrue(!html.contains("photo-1581244277943"));
+        }
     }
 
     @Test
