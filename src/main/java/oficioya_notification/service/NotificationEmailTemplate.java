@@ -234,8 +234,8 @@ public class NotificationEmailTemplate {
     }
 
     /**
-     * Carrusel sin JavaScript: las fotos se desplazan solas con CSS y las miniaturas
-     * inferiores son el respaldo visible en clientes que no animan el contenido.
+     * Carrusel sin JavaScript: las fotos se desplazan solas con CSS y cada una
+     * aparece una sola vez en el correo.
      */
     private String carouselHtml(NotificationRequest request) {
         List<String> sources = requestPhotoSources(request);
@@ -252,19 +252,7 @@ public class NotificationEmailTemplate {
                     .append("\" alt=\"Foto del servicio\" width=\"100%\" height=\"94\" "
                             + "style=\"display:block;width:100%;height:94px;object-fit:cover;\">");
         }
-        html.append("</div></div>");
-        if (sources.size() > 1) {
-            html.append("<div style=\"margin-top:8px;\">");
-            for (String source : sources) {
-                html.append("<img class=\"oficioya-photo\" src=\"").append(escape(source))
-                        .append("\" alt=\"Miniatura del servicio\" width=\"56\" height=\"42\" "
-                                + "style=\"display:inline-block;width:56px;height:42px;object-fit:cover;"
-                                + "border-radius:8px;margin:0 6px 6px 0;border:1px solid ")
-                .append(COLOR_BORDER).append(";\">");
-            }
-            html.append("</div>");
-        }
-        html.append("</div>");
+        html.append("</div></div></div>");
         return html.toString();
     }
 

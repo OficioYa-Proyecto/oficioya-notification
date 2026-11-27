@@ -74,13 +74,17 @@ class NotificationEmailTemplateTest {
         assertTrue(worker.contains("@keyframes oficioya-slide-3"));
         assertTrue(worker.contains("cid:request-photo-1"));
         assertTrue(worker.contains("cid:request-photo-3"));
-        assertTrue(worker.contains("Miniatura del servicio"));
+        assertTrue(!worker.contains("Miniatura del servicio"));
         assertTrue(!worker.contains("photo-1581244277943"));
+        assertEquals(1, worker.split("cid:request-photo-1", -1).length - 1);
+        assertEquals(1, worker.split("cid:request-photo-2", -1).length - 1);
+        assertEquals(1, worker.split("cid:request-photo-3", -1).length - 1);
 
         String contractor = template.contractorHtml(request, notification);
 
         assertTrue(contractor.contains("oficioya-track-3"));
         assertTrue(contractor.contains("cid:request-photo-2"));
+        assertEquals(1, contractor.split("cid:request-photo-2", -1).length - 1);
     }
 
     @Test
