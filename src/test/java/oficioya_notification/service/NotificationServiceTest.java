@@ -198,6 +198,37 @@ class NotificationServiceTest {
     }
 
     @Test
+    void sendNotificationEstadoConFotosAdjuntaElMismoCarruselQueElCorreoDeEntrada() {
+        UUID requestId = UUID.randomUUID();
+        List<String> photos = List.of("YQ==");
+        List<String> contentTypes = List.of("image/jpeg");
+        NotificationRequest req = new NotificationRequest(
+                UUID.randomUUID(), null, "Fuga de agua", "Tu solicitud fue aceptada",
+                NotificationType.ACCEPTED_REQUEST, requestId, null, null, "contratante@correo.com",
+                null, "Laureles", "Cra. 74 # 39-25", null, null, null, null, null, photos, contentTypes);
+        Notification entity = new Notification();
+        entity.setState(NotificationType.ACCEPTED_REQUEST);
+        entity.setRequestId(requestId);
+        NotificationResponse resp = new NotificationResponse(UUID.randomUUID(), "t", "d",
+                NotificationType.ACCEPTED_REQUEST, requestId, null, null);
+        when(responseMapper.toNotification(req)).thenReturn(entity);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(entity);
+        when(responseMapper.toResponse(entity)).thenReturn(resp);
+        when(emailTemplate.statusSubject(req, entity)).thenReturn("Tu solicitud en OficioYa fue aceptada");
+        when(emailTemplate.statusPlain(req, entity)).thenReturn("Solicitud aceptada");
+        when(emailTemplate.statusHtml(req, entity)).thenReturn("<html>Solicitud aceptada</html>");
+
+        notificationService.sendNotification(req);
+
+        ArgumentCaptor<EmailRequest> captor = ArgumentCaptor.forClass(EmailRequest.class);
+        verify(emailNotificationService).sendHtmlEmailWithPhotos(captor.capture(),
+                org.mockito.ArgumentMatchers.eq("<html>Solicitud aceptada</html>"),
+                org.mockito.ArgumentMatchers.eq(photos),
+                org.mockito.ArgumentMatchers.eq(contentTypes));
+        assertEquals("ACCEPTED_REQUEST", captor.getValue().type());
+    }
+
+    @Test
     void sendNotificationConflictoEnviaCorreoConTipoYAsuntoDeDisputa() {
         UUID requestId = UUID.randomUUID();
         UUID rootId = UUID.randomUUID();

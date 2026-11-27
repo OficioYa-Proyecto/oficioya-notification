@@ -105,12 +105,20 @@ public class NotificationService {
             }
             return;
         }
-        emailNotificationService.sendHtmlEmail(
-                new EmailRequest(email,
-                        emailTemplate.statusSubject(request, noti),
-                        emailTemplate.statusPlain(request, noti),
-                        String.valueOf(request.type())),
-                emailTemplate.statusHtml(request, noti));
+        EmailRequest mail = new EmailRequest(email,
+                emailTemplate.statusSubject(request, noti),
+                emailTemplate.statusPlain(request, noti),
+                String.valueOf(request.type()));
+        String html = emailTemplate.statusHtml(request, noti);
+        if (hasCarousel) {
+            emailNotificationService.sendHtmlEmailWithPhotos(mail, html,
+                    request.photoBase64s(), request.photoContentTypes());
+        } else if (request.imageBase64() != null && !request.imageBase64().isBlank()) {
+            emailNotificationService.sendHtmlEmail(mail, html,
+                    request.imageBase64(), request.imageContentType());
+        } else {
+            emailNotificationService.sendHtmlEmail(mail, html);
+        }
     }
 
     public boolean deleteNotification(UUID requestId) {

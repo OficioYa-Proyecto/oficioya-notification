@@ -84,6 +84,36 @@ class NotificationEmailTemplateTest {
     }
 
     @Test
+    void statusAceptadoYRechazadoMuestranLosMismosDetallesQueElCorreoDeEntrada() {
+        NotificationRequest request = new NotificationRequest(
+                UUID.randomUUID(), null, "Fuga de agua", "msg",
+                NotificationType.ACCEPTED_REQUEST, UUID.randomUUID(), null, null, "destino@correo.com",
+                LocalDateTime.of(2026, 3, 2, 10, 30), "Medellín", "Laureles", "Cra. 74 # 39-25", null,
+                null, null, null, null,
+                List.of("YQ=="), List.of("image/jpeg"));
+        Notification notification = new Notification();
+        notification.setState(NotificationType.ACCEPTED_REQUEST);
+        notification.setRequestId(request.requestId());
+        notification.setDescription("Fuga de agua");
+
+        String worker = template.workerHtml(request, notification);
+        String accepted = template.statusHtml(request, notification);
+        notification.setState(NotificationType.REJECTED_REQUEST);
+        String rejected = template.statusHtml(request, notification);
+
+        for (String html : List.of(worker, accepted, rejected)) {
+            assertTrue(html.contains("Fuga de agua"));
+            assertTrue(html.contains("Lun, 2 de marzo"));
+            assertTrue(html.contains("10:30"));
+            assertTrue(html.contains("Medellín · Laureles"));
+            assertTrue(html.contains("Cra. 74 # 39-25"));
+            assertTrue(html.contains("cid:request-photo-1"));
+        }
+        assertTrue(accepted.contains(">Solicitud aceptada</div>"));
+        assertTrue(rejected.contains(">Solicitud rechazada</div>"));
+    }
+
+    @Test
     void contractorHtmlContieneLaConfirmacion() {
         NotificationRequest request = new NotificationRequest(
                 UUID.randomUUID(), "Creada", "Solicitud creada", "msg",
